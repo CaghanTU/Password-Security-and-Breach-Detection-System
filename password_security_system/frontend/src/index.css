@@ -1,0 +1,80 @@
+:root {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  background-color: #0f1117;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+.navbar-brand-logo { font-size: 1.25rem; font-weight: 700; }
+.pw-mono { font-family: monospace; letter-spacing: .05em; cursor: pointer; }
+.tab-pane { animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.score-ring { font-size: 5rem; font-weight: 800; }
+.badge-weak   { background: #dc3545 !important; }
+.badge-medium { background: #fd7e14 !important; }
+.badge-strong { background: #198754 !important; }
+.card { background: #1a1d27 !important; border-color: #2d3148 !important; color: #e2e8f0 !important; }
+
+/* Kart içindeki tüm metin renkleri */
+.card h1, .card h2, .card h3, .card h4, .card h5, .card h6,
+.card p, .card label, .card small, .card span, .card li,
+.card .form-label, .card .form-check-label, .card .text-secondary,
+.card .text-muted {
+  color: #e2e8f0 !important;
+}
+.card .text-secondary, .card .text-muted {
+  color: #a0aec0 !important;
+}
+.card small {
+  color: #a0aec0 !important;
+}
+
+/* Tablo hücreleri */
+.table { color: #e2e8f0 !important; }
+.table td, .table th { color: #e2e8f0 !important; border-color: #2d3148 !important; }
+
+/* Navbar tab butonları */
+.nav-link { color: #a0aec0 !important; }
+.nav-link.active { color: #fff !important; }
+.nav-tabs { border-color: #2d3148 !important; }
+.nav-tabs .nav-link.active { background: #2a2d3e !important; border-color: #2d3148 !important; }
+
+/* Input alanları düzeltmesi */
+.form-control {
+  background-color: #2a2d3e !important;
+  border-color: #4a5080 !important;
+  color: #e2e8f0 !important;
+}
+.form-control::placeholder {
+  color: #8892a4 !important;
+  opacity: 1;
+}
+.form-control:focus {
+  background-color: #2a2d3e !important;
+  border-color: #6e7dff !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 0 0 0.2rem rgba(110,125,255,.25) !important;
+}
+/* Select kutuları */
+.form-select {
+  background-color: #2a2d3e !important;
+  border-color: #4a5080 !important;
+  color: #e2e8f0 !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e2e8f0' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+}
+.form-select:focus {
+  border-color: #6e7dff !important;
+  box-shadow: 0 0 0 0.2rem rgba(110,125,255,.25) !important;
+}
+
+/* Tarayıcı autofill arka plan ezme */
+.form-control:-webkit-autofill,
+.form-control:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #2a2d3e inset !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+  caret-color: #e2e8f0;
+}
