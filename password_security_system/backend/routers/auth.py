@@ -21,13 +21,13 @@ def _get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-@router.post("/register", response_model=MessageResponse)
+@router.post("/register")
 def register(body: RegisterRequest, db: Session = Depends(get_db)):
     try:
-        auth_service.register(db, body.username, body.master_password)
+        user, qr_image, secret = auth_service.register(db, body.username, body.master_password)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    return {"message": "User registered successfully"}
+    return {"message": "User registered successfully", "qr_image": qr_image, "secret": secret}
 
 
 @router.post("/login")

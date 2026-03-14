@@ -42,7 +42,7 @@ export default function AuditTab() {
         all ? '' : dateFrom,
         all ? '' : dateTo,
       )
-      setDeleteMsg({ ok: true, text: `${res.deleted} kayıt silindi.` })
+      setDeleteMsg({ ok: true, text: `${res.deleted} records deleted.` })
       setPage(1)
       load(1)
     } catch (e) {
@@ -61,23 +61,23 @@ export default function AuditTab() {
           className={`btn btn-sm ${showDelete ? 'btn-outline-secondary' : 'btn-outline-danger'}`}
           onClick={() => { setShowDelete(v => !v); setDeleteMsg(null); setConfirmAll(false) }}
         >
-          {showDelete ? '✕ İptal' : '🗑 Kayıtları Temizle'}
+          {showDelete ? 'Cancel' : 'Clear Records'}
         </button>
       </div>
 
       {/* Delete panel */}
       {showDelete && (
         <div className="card p-3 mb-4" style={{ border: '1px solid #dc354555', background: '#1a0d0d' }}>
-          <div className="fw-semibold mb-2" style={{ color: '#dc3545' }}>Kayıt Silme</div>
+          <div className="fw-semibold mb-2" style={{ color: '#dc3545' }}>Delete Records</div>
 
           <div className="row g-2 mb-3">
             <div className="col-sm-6">
-              <label className="form-label small text-secondary">Başlangıç tarihi</label>
+              <label className="form-label small text-secondary">Start date</label>
               <input type="date" className="form-control form-control-sm"
                 value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
             </div>
             <div className="col-sm-6">
-              <label className="form-label small text-secondary">Bitiş tarihi</label>
+              <label className="form-label small text-secondary">End date</label>
               <input type="date" className="form-control form-control-sm"
                 value={dateTo} onChange={e => setDateTo(e.target.value)} />
             </div>
@@ -89,20 +89,20 @@ export default function AuditTab() {
               disabled={deleting || (!dateFrom && !dateTo)}
               onClick={() => handleDelete(false)}
             >
-              {deleting ? <span className="spinner-border spinner-border-sm" /> : '🗑 Tarih Aralığını Sil'}
+              {deleting ? <span className="spinner-border spinner-border-sm" /> : 'Delete Date Range'}
             </button>
 
             {!confirmAll ? (
               <button className="btn btn-sm btn-outline-danger" onClick={() => setConfirmAll(true)}>
-                Tümünü Sil
+                Delete All
               </button>
             ) : (
               <>
-                <span className="small text-danger align-self-center">Emin misin?</span>
+                <span className="small text-danger align-self-center">Are you sure?</span>
                 <button className="btn btn-sm btn-danger" disabled={deleting} onClick={() => handleDelete(true)}>
-                  {deleting ? <span className="spinner-border spinner-border-sm" /> : 'Evet, Tümünü Sil'}
+                  {deleting ? <span className="spinner-border spinner-border-sm" /> : 'Yes, Delete All'}
                 </button>
-                <button className="btn btn-sm btn-outline-secondary" onClick={() => setConfirmAll(false)}>Hayır</button>
+                <button className="btn btn-sm btn-outline-secondary" onClick={() => setConfirmAll(false)}>No</button>
               </>
             )}
           </div>
@@ -118,23 +118,23 @@ export default function AuditTab() {
       {loading ? (
         <div className="text-center py-5"><div className="spinner-border text-primary" /></div>
       ) : !data || !data.items.length ? (
-        <p className="text-secondary">Henüz kayıt yok.</p>
+        <p className="text-secondary">No audit records yet.</p>
       ) : (
         <>
-          <p className="text-secondary small">Sayfa {data.page} — Toplam {data.total} kayıt</p>
+          <p className="text-secondary small">Page {data.page} — {data.total} total records</p>
           <div className="table-responsive">
             <table className="table table-dark table-hover align-middle">
               <thead>
                 <tr>
-                  <th>Tarih / Saat</th>
-                  <th>Aksiyon</th>
-                  <th>IP Adresi</th>
+                  <th>Date / Time</th>
+                  <th>Action</th>
+                  <th>IP Address</th>
                 </tr>
               </thead>
               <tbody>
                 {data.items.map(e => (
                   <tr key={e.id}>
-                    <td className="text-secondary small">{new Date(e.created_at).toLocaleString('tr-TR')}</td>
+                    <td className="text-secondary small">{new Date(e.created_at).toLocaleString()}</td>
                     <td>
                       <span className={`badge text-bg-${ACTION_COLORS[e.action] ?? 'secondary'}`}>
                         {e.action}
@@ -148,11 +148,11 @@ export default function AuditTab() {
           </div>
           <div className="d-flex gap-2 mt-2">
             <button className="btn btn-sm btn-outline-secondary" onClick={() => changePage(-1)} disabled={page <= 1}>
-              ← Önceki
+              Previous
             </button>
             <button className="btn btn-sm btn-outline-secondary" onClick={() => changePage(1)}
               disabled={data.items.length < 20}>
-              Sonraki →
+              Next
             </button>
           </div>
         </>

@@ -2,20 +2,20 @@ import { useState } from 'react'
 import { api } from '../services/api'
 
 const DATA_CLASS_META = {
-  'Passwords':             { color: '#dc3545', icon: '🔑' },
-  'Email addresses':       { color: '#fd7e14', icon: '✉️' },
-  'Usernames':             { color: '#ffc107', icon: '👤' },
-  'IP addresses':          { color: '#6f42c1', icon: '🌐' },
-  'Phone numbers':         { color: '#0dcaf0', icon: '📱' },
-  'Dates of birth':        { color: '#20c997', icon: '🎂' },
-  'Names':                 { color: '#6c757d', icon: '📝' },
-  'Geographic locations':  { color: '#198754', icon: '📍' },
-  'Social media profiles': { color: '#0d6efd', icon: '💬' },
-  'Credit cards':          { color: '#dc3545', icon: '💳' },
+  'Passwords':             { color: '#dc3545' },
+  'Email addresses':       { color: '#fd7e14' },
+  'Usernames':             { color: '#ffc107' },
+  'IP addresses':          { color: '#6f42c1' },
+  'Phone numbers':         { color: '#0dcaf0' },
+  'Dates of birth':        { color: '#20c997' },
+  'Names':                 { color: '#6c757d' },
+  'Geographic locations':  { color: '#198754' },
+  'Social media profiles': { color: '#0d6efd' },
+  'Credit cards':          { color: '#dc3545' },
 }
 
 function DataTag({ label }) {
-  const meta = DATA_CLASS_META[label] || { color: '#6c757d', icon: '📄' }
+  const meta = DATA_CLASS_META[label] || { color: '#6c757d' }
   return (
     <span
       className="badge me-1 mb-1"
@@ -27,7 +27,7 @@ function DataTag({ label }) {
         fontWeight: 500,
       }}
     >
-      {meta.icon} {label}
+      {label}
     </span>
   )
 }
@@ -36,8 +36,8 @@ function BreachCard({ b, defaultOpen }) {
   const [open, setOpen] = useState(defaultOpen)
 
   const dateStr = b.breach_date
-    ? new Date(b.breach_date + 'T00:00:00').toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' })
-    : 'Tarih bilinmiyor'
+    ? new Date(b.breach_date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+    : 'Date unknown'
 
   const logoUrl = b.logo_path || null
 
@@ -61,8 +61,8 @@ function BreachCard({ b, defaultOpen }) {
         >
           {logoUrl
             ? <img src={logoUrl} alt={b.title} style={{ width: 40, height: 40, objectFit: 'contain' }}
-                onError={e => { e.target.style.display = 'none'; e.target.parentNode.textContent = '🔓' }} />
-            : <span style={{ fontSize: '1.4rem' }}>🔓</span>
+                onError={e => { e.target.style.display = 'none'; e.target.parentNode.textContent = '?' }} />
+            : <span style={{ fontSize: '1.2rem', color: '#6c757d' }}>?</span>
           }
         </div>
 
@@ -73,17 +73,17 @@ function BreachCard({ b, defaultOpen }) {
             <span className="small" style={{ color: '#a0aec0' }}>{dateStr}</span>
             {b.pwn_count > 0 && (
               <span className="badge small" style={{ background: '#dc354522', color: '#dc3545', border: '1px solid #dc354555' }}>
-                {b.pwn_count.toLocaleString()} hesap
+                {b.pwn_count.toLocaleString()} accounts
               </span>
             )}
             {b.is_sensitive && (
               <span className="badge small" style={{ background: '#6f42c122', color: '#c070ff', border: '1px solid #6f42c155' }}>
-                hassas
+                sensitive
               </span>
             )}
             {b.is_verified === false && (
               <span className="badge small text-secondary" style={{ background: '#2a2d3e', border: '1px solid #6c757d44' }}>
-                doğrulanmamış
+                unverified
               </span>
             )}
           </div>
@@ -94,7 +94,7 @@ function BreachCard({ b, defaultOpen }) {
           {b.data_classes.slice(0, 4).map(dc => <DataTag key={dc} label={dc} />)}
           {b.data_classes.length > 4 && (
             <span className="badge text-secondary" style={{ background: '#2a2d3e', fontSize: '0.75rem' }}>
-              +{b.data_classes.length - 4} daha
+              +{b.data_classes.length - 4} more
             </span>
           )}
         </div>
@@ -107,7 +107,7 @@ function BreachCard({ b, defaultOpen }) {
         <div className="px-4 pb-4" style={{ borderTop: '1px solid #2d3148' }}>
           <div className="mt-3">
             <div className="small fw-semibold mb-2" style={{ color: '#6c757d', letterSpacing: '0.05em' }}>
-              SIZDIRILAN VERİLER
+              LEAKED DATA
             </div>
             <div className="d-flex flex-wrap">
               {b.data_classes.map(dc => <DataTag key={dc} label={dc} />)}
@@ -117,16 +117,16 @@ function BreachCard({ b, defaultOpen }) {
           {plainDesc && (
             <div className="mt-3">
               <div className="small fw-semibold mb-1" style={{ color: '#6c757d', letterSpacing: '0.05em' }}>
-                OLAY AÇIKLAMASI
+                INCIDENT DESCRIPTION
               </div>
               <p className="small mb-0" style={{ color: '#a0aec0', lineHeight: 1.6 }}>{plainDesc}</p>
             </div>
           )}
 
           <div className="mt-3 d-flex flex-wrap gap-3 small" style={{ color: '#6c757d' }}>
-            {b.domain && <span>🌐 {b.domain}</span>}
-            {b.breach_date && <span>📅 {dateStr}</span>}
-            {b.pwn_count > 0 && <span>👥 {b.pwn_count.toLocaleString()} hesap etkilendi</span>}
+            {b.domain && <span>{b.domain}</span>}
+            {b.breach_date && <span>{dateStr}</span>}
+            {b.pwn_count > 0 && <span>{b.pwn_count.toLocaleString()} accounts affected</span>}
           </div>
         </div>
       )}
@@ -138,14 +138,13 @@ function BreachHistory({ result }) {
   if (!result || !result.email) {
     return <div className="alert alert-warning mt-4">Invalid response from server</div>
   }
-  
+
   const { email, breaches } = result
 
   if (!breaches || !Array.isArray(breaches) || breaches.length === 0) {
     return (
-      <div className="alert alert-success mt-4 d-flex align-items-center gap-2">
-        <span style={{ fontSize: '1.5rem' }}>✅</span>
-        <div><strong>{email}</strong> için bilinen ihlallerde kayıt bulunamadı.</div>
+      <div className="alert alert-success mt-4">
+        No known breaches found for <strong>{email}</strong>. You're safe!
       </div>
     )
   }
@@ -156,18 +155,18 @@ function BreachHistory({ result }) {
     <div className="mt-4">
       <div className="d-flex align-items-center justify-content-between mb-3">
         <div>
-          <h5 className="mb-0">İhlal Geçmişin</h5>
-          <small style={{ color: '#a0aec0' }}>{email} · {breaches.length} ihlal tespit edildi</small>
+          <h5 className="mb-0">Breach History</h5>
+          <small style={{ color: '#a0aec0' }}>{email} · {breaches.length} breaches detected</small>
         </div>
-        <span className="badge bg-danger fs-6 px-3 py-2">{breaches.length} ihlal</span>
+        <span className="badge bg-danger fs-6 px-3 py-2">{breaches.length} breaches</span>
       </div>
 
       {/* Column headers */}
       <div className="d-none d-md-flex align-items-center px-3 pb-2 small fw-bold"
         style={{ color: '#6c757d', borderBottom: '1px solid #2d3148', gap: 12 }}>
         <span style={{ width: 48, flexShrink: 0 }} />
-        <span className="flex-grow-1">İhlal</span>
-        <span style={{ width: 260, textAlign: 'right' }}>Sızdırılan Veriler</span>
+        <span className="flex-grow-1">Breach</span>
+        <span style={{ width: 260, textAlign: 'right' }}>Leaked Data</span>
         <span style={{ width: 24 }} />
       </div>
 
@@ -211,12 +210,12 @@ export default function BreachTab() {
         {/* Email */}
         <div className="col-md-7">
           <div className="card p-4">
-            <h5 className="mb-3">✉️ E-posta İhlal Kontrolü</h5>
+            <h5 className="mb-3">Email Breach Check</h5>
             <form onSubmit={checkEmail} className="d-flex gap-2">
-              <input className="form-control" type="email" required placeholder="ornek@email.com"
+              <input className="form-control" type="email" required placeholder="example@email.com"
                 value={email} onChange={e => setEmail(e.target.value)} />
               <button className="btn btn-warning px-4 flex-shrink-0" disabled={emailLoading}>
-                {emailLoading ? <span className="spinner-border spinner-border-sm" /> : 'Tara'}
+                {emailLoading ? <span className="spinner-border spinner-border-sm" /> : 'Scan'}
               </button>
             </form>
             {emailError && <div className="alert alert-danger mt-3 py-2">{emailError}</div>}
@@ -226,20 +225,20 @@ export default function BreachTab() {
         {/* Password */}
         <div className="col-md-5">
           <div className="card p-4">
-            <h5 className="mb-3">🔑 Şifre Kontrolü <small className="text-secondary fs-6">(k-anonimlik)</small></h5>
+            <h5 className="mb-3">Password Check <small className="text-secondary fs-6">(k-anonymity)</small></h5>
             <form onSubmit={checkPassword} className="d-flex gap-2">
-              <input className="form-control" type="password" required placeholder="Şifrenizi girin"
+              <input className="form-control" type="password" required placeholder="Enter your password"
                 value={password} onChange={e => setPassword(e.target.value)} />
               <button className="btn btn-warning px-4 flex-shrink-0" disabled={pwLoading}>
-                {pwLoading ? <span className="spinner-border spinner-border-sm" /> : 'Tara'}
+                {pwLoading ? <span className="spinner-border spinner-border-sm" /> : 'Scan'}
               </button>
             </form>
             {pwError && <div className="alert alert-danger mt-2 py-2">{pwError}</div>}
             {pwResult && (
               <div className={`alert mt-2 py-2 ${pwResult.pwned ? 'alert-danger' : 'alert-success'}`}>
                 {pwResult.pwned
-                  ? <>⚠️ Bu şifre <strong>{pwResult.count.toLocaleString()}</strong> kez ihlal edilmiş!</>
-                  : '✅ Bilinen ihlallerde bu şifre bulunamadı.'}
+                  ? <>This password has been breached <strong>{pwResult.count.toLocaleString()}</strong> times! We recommend changing it.</>
+                  : 'This password was not found in known breaches. You\'re safe!'}
               </div>
             )}
           </div>

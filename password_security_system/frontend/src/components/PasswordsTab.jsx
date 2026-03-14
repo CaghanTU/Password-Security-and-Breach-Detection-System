@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '../services/api'
 
 const CATEGORIES = ['', 'email', 'banking', 'social', 'work', 'other']
-const CAT_LABELS  = { '': 'Tümü', email: 'E-posta', banking: 'Bankacılık', social: 'Sosyal', work: 'İş', other: 'Diğer' }
+const CAT_LABELS  = { '': 'All', email: 'Email', banking: 'Banking', social: 'Social', work: 'Work', other: 'Other' }
 
 function StrengthBadge({ label }) {
   return <span className={`badge badge-${label}`}>{label}</span>
@@ -18,7 +18,7 @@ function CredentialRow({ cred, onEdit, onDelete }) {
 
   return (
     <div className="card mb-2">
-      {/* Ana satır */}
+      {/* Main row */}
       <div
         className="p-3 d-flex align-items-center justify-content-between flex-wrap gap-2"
         style={{ cursor: 'pointer' }}
@@ -27,19 +27,19 @@ function CredentialRow({ cred, onEdit, onDelete }) {
         <div>
           <span className="fw-semibold">{cred.site_name}</span>
           <span className="badge bg-secondary ms-2 text-uppercase">{cred.category}</span>
-          {cred.is_stale && <span className="badge bg-warning text-dark ms-1">Eski</span>}
+          {cred.is_stale && <span className="badge bg-warning text-dark ms-1">Stale</span>}
           {cred.is_breached && (
             <span className="badge bg-danger ms-1">
-              ⚠ Şifre İhlal{cred.breach_count > 0 ? ` (${cred.breach_count.toLocaleString()}×)` : ''}
+              Password Breached{cred.breach_count > 0 ? ` (${cred.breach_count.toLocaleString()}x)` : ''}
             </span>
           )}
           {cred.email_breached && (
             <span className="badge bg-danger ms-1">
-              ✉ E-posta İhlal ({cred.email_breach_count} ihlal)
+              Email Breached ({cred.email_breach_count} breaches)
             </span>
           )}
-          {cred.breach_date_status === 'not_rotated' && <span className="badge bg-danger ms-1">Güncellenmedi ✗</span>}
-          {cred.breach_date_status === 'changed_after' && <span className="badge bg-success ms-1">Güncellendi ✓</span>}
+          {cred.breach_date_status === 'not_rotated' && <span className="badge bg-danger ms-1">Not Updated</span>}
+          {cred.breach_date_status === 'changed_after' && <span className="badge bg-success ms-1">Updated</span>}
           <br />
           <small className="text-secondary">{cred.site_username}</small>
         </div>
@@ -47,66 +47,56 @@ function CredentialRow({ cred, onEdit, onDelete }) {
           <StrengthBadge label={cred.strength_label} />
           <code
             className="pw-mono text-info"
-            title="Göster / Gizle"
+            title="Show / Hide"
             onClick={() => setShow(s => !s)}
           >
             {show ? cred.password : '••••••••'}
           </code>
-          <button className="btn btn-sm btn-outline-secondary" onClick={() => onEdit(cred)}>Düzenle</button>
-          <button className="btn btn-sm btn-outline-danger" onClick={() => onDelete(cred.id)}>Sil</button>
+          <button className="btn btn-sm btn-outline-secondary" onClick={() => onEdit(cred)}>Edit</button>
+          <button className="btn btn-sm btn-outline-danger" onClick={() => onDelete(cred.id)}>Delete</button>
         </div>
       </div>
 
-      {/* Detay paneli */}
+      {/* Detail panel */}
       {expanded && (
         <div className="px-3 pb-3 pt-0" style={{ borderTop: '1px solid #2d3148' }}>
-          <div className="row mt-2 g-2 small">
-            <div className="col-md-4">
-              <div className="p-2 rounded" style={{ background: '#0f1117' }}>
-                <span className="text-secondary">Güç: </span>
-                <StrengthBadge label={cred.strength_label} />
-              </div>
+          <div className="d-flex flex-column gap-2 mt-2 small">
+            <div className="p-2 rounded d-flex justify-content-between align-items-center" style={{ background: '#0f1117' }}>
+              <span className="text-secondary">Strength</span>
+              <StrengthBadge label={cred.strength_label} />
             </div>
-            <div className="col-md-4">
-              <div className="p-2 rounded" style={{ background: '#0f1117' }}>
-                <span className="text-secondary">Yaş: </span>
-                <strong>{sinceUpdate !== null ? `${sinceUpdate} gün` : '—'}</strong>
-              </div>
+            <div className="p-2 rounded d-flex justify-content-between align-items-center" style={{ background: '#0f1117' }}>
+              <span className="text-secondary">Password Age</span>
+              <strong>{sinceUpdate !== null ? `${sinceUpdate} days` : '—'}</strong>
             </div>
-            <div className="col-md-4">
-              <div className="p-2 rounded" style={{ background: '#0f1117' }}>
-                <span className="text-secondary">Şifre ihlali: </span>
-                {cred.is_breached
-                  ? <strong className="text-danger">Evet — {cred.breach_count.toLocaleString()} kez görülmüş</strong>
-                  : <strong className="text-success">Hayır</strong>
-                }
-              </div>
+            <div className="p-2 rounded d-flex justify-content-between align-items-center" style={{ background: '#0f1117' }}>
+              <span className="text-secondary">Password Breach</span>
+              {cred.is_breached
+                ? <strong className="text-danger">Yes — found {cred.breach_count.toLocaleString()} times</strong>
+                : <strong className="text-success">No</strong>
+              }
             </div>
-            <div className="col-md-4">
-              <div className="p-2 rounded" style={{ background: '#0f1117' }}>
-                <span className="text-secondary">E-posta ihlali: </span>
-                {cred.email_breached
-                  ? <strong className="text-danger">Evet — {cred.email_breach_count} farklı ihlal</strong>
-                  : cred.site_username.includes('@')
-                    ? <strong className="text-success">Hayır</strong>
-                    : <span className="text-secondary">E-posta değil</span>
-                }
-              </div>
+            <div className="p-2 rounded d-flex justify-content-between align-items-center" style={{ background: '#0f1117' }}>
+              <span className="text-secondary">Email Breach</span>
+              {cred.email_breached
+                ? <strong className="text-danger">Yes — {cred.email_breach_count} different breaches</strong>
+                : cred.site_username.includes('@')
+                  ? <strong className="text-success">No</strong>
+                  : <span className="text-secondary">Not an email</span>
+              }
             </div>
-            <div className="col-12">
-              <div className="p-2 rounded" style={{ background: '#0f1117' }}>
-                <span className="text-secondary">Oluşturuldu: </span>
-                {new Date(cred.created_at).toLocaleString('tr-TR')}
-                <span className="ms-3 text-secondary">Güncellendi: </span>
-                {new Date(cred.updated_at).toLocaleString('tr-TR')}
-              </div>
+            <div className="p-2 rounded d-flex justify-content-between align-items-center" style={{ background: '#0f1117' }}>
+              <span className="text-secondary">Created</span>
+              <span>{new Date(cred.created_at).toLocaleString()}</span>
+            </div>
+            <div className="p-2 rounded d-flex justify-content-between align-items-center" style={{ background: '#0f1117' }}>
+              <span className="text-secondary">Updated</span>
+              <span>{new Date(cred.updated_at).toLocaleString()}</span>
             </div>
             {(cred.is_breached || cred.email_breached) && (
-              <div className="col-12">
-                <div className="alert alert-danger py-2 mb-0 small">
-                  {cred.is_breached && <div>⚠ Şifre <strong>{cred.breach_count.toLocaleString()}</strong> kez ihlal veritabanında. Hemen değiştirin.</div>}
-                  {cred.email_breached && <div>✉ Bu e-posta <strong>{cred.email_breach_count}</strong> farklı ihlalde görünmüş. Yeni şifre belirleyin.</div>}
-                </div>
+              <div className="alert alert-danger py-2 mb-0 small">
+                {cred.is_breached && <div>Your password was found <strong>{cred.breach_count.toLocaleString()}</strong> times in breach databases. We recommend changing it immediately.</div>}
+                {cred.email_breached && <div>This email appeared in <strong>{cred.email_breach_count}</strong> different breaches. You should set a new password.</div>}
               </div>
             )}
           </div>
@@ -158,31 +148,31 @@ function CredentialModal({ show, initial, onClose, onSave }) {
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content card border-0">
           <div className="modal-header border-secondary">
-            <h5 className="modal-title">{isEdit ? 'Düzenle' : 'Yeni Credential'}</h5>
+            <h5 className="modal-title">{isEdit ? 'Edit Credential' : 'New Credential'}</h5>
             <button className="btn-close btn-close-white" onClick={onClose} />
           </div>
           <form onSubmit={handleSubmit}>
             <div className="modal-body">
               <div className="mb-3">
-                <label className="form-label">Site / Uygulama Adı</label>
+                <label className="form-label">Site / App Name</label>
                 <input className="form-control" required value={form.site_name} onChange={set('site_name')} />
               </div>
               <div className="mb-3">
-                <label className="form-label">Kullanıcı Adı / E-posta</label>
+                <label className="form-label">Username / Email</label>
                 <input className="form-control" required value={form.site_username} onChange={set('site_username')} />
               </div>
               <div className="mb-3">
-                <label className="form-label">{isEdit ? 'Yeni Şifre (boş bırakırsan değişmez)' : 'Şifre'}</label>
+                <label className="form-label">{isEdit ? 'New Password (leave blank to keep current)' : 'Password'}</label>
                 <div className="input-group">
                   <input className="form-control" type={showPw ? 'text' : 'password'}
                     required={!isEdit} value={form.password} onChange={set('password')} />
                   <button type="button" className="btn btn-outline-secondary"
-                    onClick={() => setShowPw(v => !v)}>{showPw ? '🙈' : '👁'}</button>
+                    onClick={() => setShowPw(v => !v)}>{showPw ? 'Hide' : 'Show'}</button>
                 </div>
-                <small className="text-secondary">Kayıt sırasında HIBP ihlal kontrolü otomatik yapılır.</small>
+                <small className="text-secondary">HIBP breach check is performed automatically on save.</small>
               </div>
               <div className="mb-3">
-                <label className="form-label">Kategori</label>
+                <label className="form-label">Category</label>
                 <select className="form-select" value={form.category} onChange={set('category')}>
                   {['other','email','banking','social','work'].map(c => <option key={c} value={c}>{CAT_LABELS[c]}</option>)}
                 </select>
@@ -190,9 +180,9 @@ function CredentialModal({ show, initial, onClose, onSave }) {
               {error && <div className="alert alert-danger py-2">{error}</div>}
             </div>
             <div className="modal-footer border-secondary">
-              <button type="button" className="btn btn-secondary" onClick={onClose}>İptal</button>
+              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
               <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? <span className="spinner-border spinner-border-sm" /> : 'Kaydet'}
+                {loading ? <span className="spinner-border spinner-border-sm" /> : 'Save'}
               </button>
             </div>
           </form>
@@ -220,7 +210,7 @@ export default function PasswordsTab() {
   useEffect(() => { load() }, [load])
 
   async function handleDelete(id) {
-    if (!confirm('Bu credential silinsin mi?')) return
+    if (!confirm('Delete this credential?')) return
     await api.deletePassword(id)
     load()
   }
@@ -233,14 +223,14 @@ export default function PasswordsTab() {
           {CATEGORIES.map(c => <option key={c} value={c}>{CAT_LABELS[c]}</option>)}
         </select>
         <button className="btn btn-primary" onClick={() => setModal({ show: true, initial: null })}>
-          + Ekle
+          + Add
         </button>
       </div>
 
       {loading ? (
         <div className="text-center py-5"><div className="spinner-border text-primary" /></div>
       ) : creds.length === 0 ? (
-        <p className="text-secondary">Henüz kayıt yok.</p>
+        <p className="text-secondary">No credentials yet. Start by adding your first password!</p>
       ) : (
         creds.map(c => (
           <CredentialRow key={c.id} cred={c}

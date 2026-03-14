@@ -18,7 +18,7 @@ export default function ExportTab() {
       a.download = `vault_export_${Date.now()}.enc.json`
       a.click()
       URL.revokeObjectURL(url)
-      setMsg({ type: 'success', text: 'Vault başarıyla indirildi.' })
+      setMsg({ type: 'success', text: 'Vault downloaded successfully.' })
     } catch (err) {
       setMsg({ type: 'danger', text: err.message })
     } finally {
@@ -28,19 +28,19 @@ export default function ExportTab() {
 
   async function doImport() {
     const file = fileRef.current?.files?.[0]
-    if (!file) { setMsg({ type: 'warning', text: 'Lütfen bir dosya seçin.' }); return }
+    if (!file) { setMsg({ type: 'warning', text: 'Please select a file.' }); return }
     setImportLoading(true); setMsg(null)
     try {
       const text = await file.text()
       const payload = JSON.parse(text)
       if (!payload.ciphertext || !payload.iv || !payload.tag) {
-        throw new Error('Geçersiz vault dosyası formatı.')
+        throw new Error('Invalid vault file format.')
       }
       const result = await api.importVault(payload)
       setMsg({
         type: 'success',
-        text: `İçe aktarma tamamlandı: ${result.imported} kayıt eklendi, ${result.skipped} atlandı.${
-          result.errors.length ? ' Hatalar: ' + result.errors.slice(0, 3).join('; ') : ''
+        text: `Import complete: ${result.imported} credentials added, ${result.skipped} skipped.${
+          result.errors.length ? ' Errors: ' + result.errors.slice(0, 3).join('; ') : ''
         }`,
       })
       if (fileRef.current) fileRef.current.value = ''
@@ -55,23 +55,23 @@ export default function ExportTab() {
     <div style={{ maxWidth: 540 }}>
       {/* Export */}
       <div className="card p-4 mb-3">
-        <h5 className="mb-2">📦 Vault Dışa Aktar</h5>
+        <h5 className="mb-2">Export Vault</h5>
         <p className="text-secondary small mb-3">
-          Tüm vault AES-256-GCM ile şifrelenmiş olarak indirilir.
-          Düz metin hiçbir zaman diske yazılmaz.
+          Your entire vault will be downloaded encrypted with AES-256-GCM.
+          Plain text is never written to disk — your data is safe.
         </p>
         <button className="btn btn-outline-primary w-100" onClick={doExport} disabled={exportLoading}>
-          {exportLoading ? <span className="spinner-border spinner-border-sm" /> : '⬇ İndir (.enc.json)'}
+          {exportLoading ? <span className="spinner-border spinner-border-sm" /> : 'Download (.enc.json)'}
         </button>
       </div>
 
       {/* Import */}
       <div className="card p-4">
-        <h5 className="mb-2">📂 Vault İçe Aktar</h5>
+        <h5 className="mb-2">Import Vault</h5>
         <p className="text-secondary small mb-3">
-          Daha önce dışa aktardığın <code>.enc.json</code> dosyasını yükle.
-          Şifreler otomatik çözülür ve hesabına eklenir.
-          Tekrar eden kayıtlar atlanır.
+          Upload a previously exported <code>.enc.json</code> file.
+          Passwords will be decrypted automatically and added to your account.
+          Duplicate entries will be skipped.
         </p>
         <div className="mb-3">
           <input
@@ -82,7 +82,7 @@ export default function ExportTab() {
           />
         </div>
         <button className="btn btn-outline-success w-100" onClick={doImport} disabled={importLoading}>
-          {importLoading ? <span className="spinner-border spinner-border-sm" /> : '⬆ Yükle ve İçe Aktar'}
+          {importLoading ? <span className="spinner-border spinner-border-sm" /> : 'Upload & Import'}
         </button>
       </div>
 

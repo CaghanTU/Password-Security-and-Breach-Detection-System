@@ -33,8 +33,8 @@ def _is_locked_out(user: User) -> bool:
     return False
 
 
-def register(db: Session, username: str, master_password: str) -> User:
-    """Create a new user.  master_password is NEVER stored — only its hash."""
+def register(db: Session, username: str, master_password: str) -> tuple[User, str, str]:
+    """Create a new user with mandatory 2FA.  master_password is NEVER stored — only its hash."""
     existing = db.query(User).filter(User.username == username).first()
     if existing:
         raise ValueError("Username already taken")
@@ -42,15 +42,30 @@ def register(db: Session, username: str, master_password: str) -> User:
     kdf_salt = generate_kdf_salt()
     pw_hash = hash_password(master_password)
 
+    secret = pyotp.random_base32()
+
     user = User(
         username=username,
         password_hash=pw_hash,
         kdf_salt=kdf_salt,
+        totp_secret=secret,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user
+
+    totp = pyotp.TOTP(secret)
+    provisioning_uri = totp.provisioning_uri(
+        name=user.username,
+        issuer_name="PasswordSecuritySystem",
+    )
+    img = qrcode.make(provisioning_uri)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    qr_data_uri = f"data:image/png;base64,{b64}"
+
+    return user, qr_data_uri, secret
 
 
 def login(
@@ -85,15 +100,16 @@ def login(
         audit_service.log(db, user.id, "LOGIN_FAILED", ip)
         raise ValueError("Invalid credentials")
 
-    # 2FA check (only if TOTP is configured for this user)
-    if user.totp_secret:
-        if not totp_code:
-            raise ValueError("2FA code required")
-        if not pyotp.TOTP(user.totp_secret).verify(totp_code):
-            user.failed_attempts = (user.failed_attempts or 0) + 1
-            db.commit()
-            audit_service.log(db, user.id, "LOGIN_FAILED", ip)
-            raise ValueError("Invalid 2FA code")
+    # 2FA check — mandatory for all users
+    if not user.totp_secret:
+        raise ValueError("2FA is not set up. Please register again.")
+    if not totp_code:
+        raise ValueError("2FA code required")
+    if not pyotp.TOTP(user.totp_secret).verify(totp_code):
+        user.failed_attempts = (user.failed_attempts or 0) + 1
+        db.commit()
+        audit_service.log(db, user.id, "LOGIN_FAILED", ip)
+        raise ValueError("Invalid 2FA code")
 
     # Reset lockout on successful login
     user.failed_attempts = 0

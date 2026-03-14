@@ -41,9 +41,9 @@ export default function ScoreTab() {
 
   const b = data.breakdown
   const chartData = {
-    labels: history.map(h => new Date(h.calculated_at).toLocaleDateString('tr-TR')),
+    labels: history.map(h => new Date(h.calculated_at).toLocaleDateString()),
     datasets: [{
-      label: 'Risk Skoru',
+      label: 'Risk Score',
       data: history.map(h => h.score),
       borderColor: '#0d6efd',
       backgroundColor: 'rgba(13,110,253,0.12)',
@@ -66,35 +66,35 @@ export default function ScoreTab() {
       {/* Score + breakdown */}
       <div className="col-md-4">
         <div className="card p-4 h-100">
-          <h5 className="mb-3">Anlık Skor</h5>
+          <h5 className="mb-3">Current Score</h5>
           <ScoreCircle score={data.score} />
 
           <table className="table table-dark table-sm mt-4">
             <tbody>
-              <tr><td>Toplam kayıt</td><td>{b.total_credentials}</td></tr>
+              <tr><td>Total credentials</td><td>{b.total_credentials}</td></tr>
               <tr className={b.weak_count > 0 ? 'text-danger' : ''}>
-                <td>Zayıf şifre</td><td>{b.weak_count} (−{5 * b.weak_count})</td>
+                <td>Weak passwords</td><td>{b.weak_count} (-{5 * b.weak_count})</td>
               </tr>
               <tr className={b.reused_count > 0 ? 'text-warning' : ''}>
-                <td>Tekrar kullanılan</td><td>{b.reused_count} (−{8 * b.reused_count})</td>
+                <td>Reused passwords</td><td>{b.reused_count} (-{8 * b.reused_count})</td>
               </tr>
               <tr className={b.breached_count > 0 ? 'text-danger' : ''}>
-                <td>Şifre ihlali</td><td>{b.breached_count} (−{15 * b.breached_count})</td>
+                <td>Breached passwords</td><td>{b.breached_count} (-{15 * b.breached_count})</td>
               </tr>
               <tr className={b.email_breached_count > 0 ? 'text-danger' : ''}>
-                <td>E-posta ihlali</td><td>{b.email_breached_count} (−{10 * b.email_breached_count})</td>
+                <td>Breached emails</td><td>{b.email_breached_count} (-{10 * b.email_breached_count})</td>
               </tr>
               <tr className={b.stale_count > 0 ? 'text-warning' : ''}>
-                <td>Eski (&gt;90 gün)</td><td>{b.stale_count} (−{3 * b.stale_count})</td>
+                <td>Stale (&gt;90 days)</td><td>{b.stale_count} (-{3 * b.stale_count})</td>
               </tr>
               <tr className={b.not_rotated_count > 0 ? 'text-danger' : ''}>
-                <td>İhlal sonrası güncellenmedi</td><td>{b.not_rotated_count} (−{5 * b.not_rotated_count})</td>
+                <td>Not rotated after breach</td><td>{b.not_rotated_count} (-{5 * b.not_rotated_count})</td>
               </tr>
             </tbody>
           </table>
 
           <button className="btn btn-outline-info btn-sm w-100 mt-auto" onClick={load}>
-            Yeniden Hesapla
+            Recalculate
           </button>
         </div>
       </div>
@@ -102,9 +102,9 @@ export default function ScoreTab() {
       {/* History chart */}
       <div className="col-md-8">
         <div className="card p-4 h-100">
-          <h5 className="mb-3">Skor Geçmişi</h5>
+          <h5 className="mb-3">Score History</h5>
           {history.length < 2
-            ? <p className="text-secondary">Grafik için en az 2 ölçüm gerekli.</p>
+            ? <p className="text-secondary">At least 2 measurements are needed for the chart.</p>
             : <Line data={chartData} options={chartOpts} />
           }
         </div>

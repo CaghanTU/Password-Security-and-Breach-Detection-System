@@ -9,13 +9,13 @@ import AuditTab from '../components/AuditTab'
 import TwoFATab from '../components/TwoFATab'
 
 const TABS = [
-  { id: 'passwords',  label: '🗝 Şifreler',        Component: PasswordsTab  },
-  { id: 'breach',     label: '🔍 İhlal Tarayıcı',  Component: BreachTab     },
-  { id: 'generator',  label: '⚡ Üretici',          Component: GeneratorTab  },
-  { id: 'score',      label: '📊 Risk Skoru',       Component: ScoreTab      },
-  { id: 'export',     label: '� Veri Köprüsü',      Component: ExportTab     },
-  { id: 'audit',      label: '📋 Audit Log',        Component: AuditTab      },
-  { id: 'twofa',      label: '🛡 2FA',              Component: TwoFATab      },
+  { id: 'passwords',  label: 'Passwords',        Component: PasswordsTab  },
+  { id: 'breach',     label: 'Breach Scanner',    Component: BreachTab     },
+  { id: 'generator',  label: 'Generator',         Component: GeneratorTab  },
+  { id: 'score',      label: 'Risk Score',        Component: ScoreTab      },
+  { id: 'export',     label: 'Backup',            Component: ExportTab     },
+  { id: 'audit',      label: 'Audit Log',         Component: AuditTab      },
+  { id: 'twofa',      label: '2FA',               Component: TwoFATab      },
 ]
 
 export default function DashboardPage() {
@@ -28,8 +28,8 @@ export default function DashboardPage() {
     <div className="min-vh-100">
       {/* Navbar */}
       <nav className="navbar navbar-dark px-4 py-3" style={{ background: '#0a0c12', borderBottom: '1px solid #2d3148' }}>
-        <span className="navbar-brand-logo text-primary">🔐 Password Security System</span>
-        <button className="btn btn-sm btn-outline-danger" onClick={logout}>Çıkış</button>
+        <span className="navbar-brand-logo text-primary">Password Security System</span>
+        <button className="btn btn-sm btn-outline-danger" onClick={logout}>Log Out</button>
       </nav>
 
       <div className="container-fluid px-4 py-3">
