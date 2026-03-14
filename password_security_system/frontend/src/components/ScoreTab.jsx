@@ -1,34 +1,49 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Line } from 'react-chartjs-2'
+import { Line, Bar } from 'react-chartjs-2'
 import {
   Chart as ChartJS, CategoryScale, LinearScale,
-  PointElement, LineElement, Tooltip, Legend, Filler,
+  PointElement, LineElement, BarElement, Tooltip, Legend, Filler,
 } from 'chart.js'
 import { api } from '../services/api'
+import {
+  Box, Card, CardContent, Typography, Button, CircularProgress,
+  Table, TableBody, TableRow, TableCell, Grid, Alert,
+} from '@mui/material'
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend, Filler)
+
+const CAT_LABELS = { email: 'E-posta', banking: 'Bankacılık', social: 'Sosyal', work: 'İş', other: 'Diğer' }
 
 function ScoreCircle({ score }) {
-  const color = score >= 70 ? '#198754' : score >= 40 ? '#fd7e14' : '#dc3545'
+  const color = score >= 70 ? 'success.main' : score >= 40 ? 'warning.main' : 'error.main'
   return (
-    <div className="score-ring text-center" style={{ color }}>
+    <Box sx={{ textAlign: 'center', fontSize: '5rem', fontWeight: 800, color }}>
       {score}
-      <div className="fs-6 text-secondary fw-normal mt-1">/ 100</div>
-    </div>
+      <Typography variant="body1" color="text.secondary" fontWeight={400} mt={0.5}>/ 100</Typography>
+    </Box>
   )
 }
 
 export default function ScoreTab() {
   const [data, setData] = useState(null)
   const [history, setHistory] = useState([])
+  const [catStats, setCatStats] = useState([])
   const [loading, setLoading] = useState(true)
+  const [pdfLoading, setPdfLoading] = useState(false)
+  const [pdfErr, setPdfErr] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [scoreData, hist] = await Promise.all([api.getScore(), api.getScoreHistory()])
+      const [scoreData, hist, cats] = await Promise.all([
+        api.getScore(),
+        api.getScoreHistory(),
+        api.getScoreByCategory(),
+      ])
       setData(scoreData)
       setHistory(hist)
+      setCatStats(cats)
     } finally {
       setLoading(false)
     }
@@ -36,14 +51,31 @@ export default function ScoreTab() {
 
   useEffect(() => { load() }, [load])
 
-  if (loading) return <div className="text-center py-5"><div className="spinner-border text-primary" /></div>
+  async function handleDownloadPDF() {
+    setPdfLoading(true); setPdfErr('')
+    try {
+      const blob = await api.downloadReport()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'risk_report.pdf'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setPdfErr(e.message)
+    } finally {
+      setPdfLoading(false)
+    }
+  }
+
+  if (loading) return <Box sx={{ textAlign: 'center', py: 5 }}><CircularProgress /></Box>
   if (!data) return null
 
   const b = data.breakdown
   const chartData = {
-    labels: history.map(h => new Date(h.calculated_at).toLocaleDateString()),
+    labels: history.map(h => new Date(h.calculated_at).toLocaleDateString('tr-TR')),
     datasets: [{
-      label: 'Risk Score',
+      label: 'Risk Skoru',
       data: history.map(h => h.score),
       borderColor: '#0d6efd',
       backgroundColor: 'rgba(13,110,253,0.12)',
@@ -61,54 +93,102 @@ export default function ScoreTab() {
     plugins: { legend: { labels: { color: '#adb5bd' } } },
   }
 
+  const catChartData = {
+    labels: catStats.filter(c => c.total > 0).map(c => CAT_LABELS[c.category] ?? c.category),
+    datasets: [
+      {
+        label: 'Zayıf',
+        data: catStats.filter(c => c.total > 0).map(c => c.weak),
+        backgroundColor: 'rgba(211,47,47,0.7)',
+      },
+      {
+        label: 'İhlal',
+        data: catStats.filter(c => c.total > 0).map(c => c.breached),
+        backgroundColor: 'rgba(230,81,0,0.7)',
+      },
+      {
+        label: 'Eski',
+        data: catStats.filter(c => c.total > 0).map(c => c.stale),
+        backgroundColor: 'rgba(245,124,0,0.7)',
+      },
+    ],
+  }
+  const catChartOpts = {
+    responsive: true,
+    scales: {
+      y: { ticks: { color: '#adb5bd', stepSize: 1 }, grid: { color: '#2d3148' } },
+      x: { ticks: { color: '#adb5bd' }, grid: { color: '#2d3148' } },
+    },
+    plugins: { legend: { labels: { color: '#adb5bd' } } },
+  }
+
+  const rows = [
+    { label: 'Toplam kayıt', value: b.total_credentials, color: null },
+    { label: 'Zayıf şifre', value: `${b.weak_count} (−${5 * b.weak_count})`, color: b.weak_count > 0 ? 'error.main' : null },
+    { label: 'Tekrar kullanılan', value: `${b.reused_count} (−${8 * b.reused_count})`, color: b.reused_count > 0 ? 'warning.main' : null },
+    { label: 'Şifre ihlali', value: `${b.breached_count} (−${15 * b.breached_count})`, color: b.breached_count > 0 ? 'error.main' : null },
+    { label: 'E-posta ihlali', value: `${b.email_breached_count} (−${10 * b.email_breached_count})`, color: b.email_breached_count > 0 ? 'error.main' : null },
+    { label: 'Eski (>90 gün)', value: `${b.stale_count} (−${3 * b.stale_count})`, color: b.stale_count > 0 ? 'warning.main' : null },
+    { label: 'İhlal sonrası güncellenmedi', value: `${b.not_rotated_count} (−${5 * b.not_rotated_count})`, color: b.not_rotated_count > 0 ? 'error.main' : null },
+  ]
+
   return (
-    <div className="row g-4">
+    <Grid container spacing={3}>
       {/* Score + breakdown */}
-      <div className="col-md-4">
-        <div className="card p-4 h-100">
-          <h5 className="mb-3">Current Score</h5>
-          <ScoreCircle score={data.score} />
-
-          <table className="table table-dark table-sm mt-4">
-            <tbody>
-              <tr><td>Total credentials</td><td>{b.total_credentials}</td></tr>
-              <tr className={b.weak_count > 0 ? 'text-danger' : ''}>
-                <td>Weak passwords</td><td>{b.weak_count} (-{5 * b.weak_count})</td>
-              </tr>
-              <tr className={b.reused_count > 0 ? 'text-warning' : ''}>
-                <td>Reused passwords</td><td>{b.reused_count} (-{8 * b.reused_count})</td>
-              </tr>
-              <tr className={b.breached_count > 0 ? 'text-danger' : ''}>
-                <td>Breached passwords</td><td>{b.breached_count} (-{15 * b.breached_count})</td>
-              </tr>
-              <tr className={b.email_breached_count > 0 ? 'text-danger' : ''}>
-                <td>Breached emails</td><td>{b.email_breached_count} (-{10 * b.email_breached_count})</td>
-              </tr>
-              <tr className={b.stale_count > 0 ? 'text-warning' : ''}>
-                <td>Stale (&gt;90 days)</td><td>{b.stale_count} (-{3 * b.stale_count})</td>
-              </tr>
-              <tr className={b.not_rotated_count > 0 ? 'text-danger' : ''}>
-                <td>Not rotated after breach</td><td>{b.not_rotated_count} (-{5 * b.not_rotated_count})</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <button className="btn btn-outline-info btn-sm w-100 mt-auto" onClick={load}>
-            Recalculate
-          </button>
-        </div>
-      </div>
+      <Grid size={{ xs: 12, md: 4 }}>
+        <Card sx={{ height: '100%' }}>
+          <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 3 }}>
+            <Typography variant="h6" mb={2}>Anlık Skor</Typography>
+            <ScoreCircle score={data.score} />
+            <Table size="small" sx={{ mt: 3 }}>
+              <TableBody>
+                {rows.map(r => (
+                  <TableRow key={r.label}>
+                    <TableCell sx={{ color: r.color ?? 'text.primary', border: 0, py: 0.5 }}>{r.label}</TableCell>
+                    <TableCell sx={{ color: r.color ?? 'text.primary', border: 0, py: 0.5 }}>{r.value}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Button variant="outlined" color="info" size="small" fullWidth sx={{ mt: 2 }} onClick={load}>
+              Yeniden Hesapla
+            </Button>
+            <Button
+              variant="outlined" color="error" size="small" fullWidth sx={{ mt: 1 }}
+              startIcon={pdfLoading ? <CircularProgress size={14} /> : <PictureAsPdfIcon />}
+              onClick={handleDownloadPDF} disabled={pdfLoading}
+            >
+              PDF Raporu İndir
+            </Button>
+            {pdfErr && <Alert severity="error" sx={{ mt: 1 }}>{pdfErr}</Alert>}
+          </CardContent>
+        </Card>
+      </Grid>
 
       {/* History chart */}
-      <div className="col-md-8">
-        <div className="card p-4 h-100">
-          <h5 className="mb-3">Score History</h5>
-          {history.length < 2
-            ? <p className="text-secondary">At least 2 measurements are needed for the chart.</p>
-            : <Line data={chartData} options={chartOpts} />
-          }
-        </div>
-      </div>
-    </div>
+      <Grid size={{ xs: 12, md: 8 }}>
+        <Card>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="h6" mb={2}>Skor Geçmişi</Typography>
+            {history.length < 2
+              ? <Typography color="text.secondary">Grafik için en az 2 ölçüm gerekli.</Typography>
+              : <Line data={chartData} options={chartOpts} />
+            }
+          </CardContent>
+        </Card>
+
+        {/* Category health chart */}
+        <Card sx={{ mt: 3 }}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="h6" mb={2}>Kategori Bazlı Sağlık</Typography>
+            {catStats.every(c => c.total === 0) ? (
+              <Typography color="text.secondary">Henüz kayıt yok.</Typography>
+            ) : (
+              <Bar data={catChartData} options={catChartOpts} />
+            )}
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
   )
 }

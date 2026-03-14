@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { api } from '../services/api'
+import {
+  Box, Card, CardContent, Typography, Button, TextField,
+  Divider, Alert, CircularProgress,
+} from '@mui/material'
 
 export default function TwoFATab() {
   const [qr, setQr] = useState(null)
@@ -15,7 +19,7 @@ export default function TwoFATab() {
       setQr(data.qr_image)
       setSecret(data.secret)
     } catch (err) {
-      setMsg({ type: 'danger', text: err.message })
+      setMsg({ type: 'error', text: err.message })
     } finally {
       setLoading(false)
     }
@@ -26,48 +30,61 @@ export default function TwoFATab() {
     setMsg(null); setLoading(true)
     try {
       await api.verify2fa(code)
-      setMsg({ type: 'success', text: 'Code verified! 2FA is now active.' })
+      setMsg({ type: 'success', text: '✓ Kod doğrulandı! 2FA aktif.' })
     } catch (err) {
-      setMsg({ type: 'danger', text: err.message })
+      setMsg({ type: 'error', text: err.message })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="card p-4 text-center" style={{ maxWidth: 420 }}>
-      <h5 className="mb-2">Two-Factor Authentication</h5>
-      <p className="text-secondary small mb-4">
-        Add an extra layer of security to your account. Scan the QR code with Google Authenticator or Authy.
-      </p>
+    <Card sx={{ maxWidth: 420, textAlign: 'center' }}>
+      <CardContent sx={{ p: 4 }}>
+        <Typography variant="h6" gutterBottom>İki Faktörlü Kimlik Doğrulama</Typography>
+        <Typography variant="body2" color="text.secondary" mb={3}>
+          QR kodu Google Authenticator veya Authy ile tarayın.
+        </Typography>
 
-      <button className="btn btn-primary mb-4" onClick={setup} disabled={loading}>
-        {loading ? <span className="spinner-border spinner-border-sm" /> : 'Generate QR Code'}
-      </button>
+        <Button variant="contained" onClick={setup} disabled={loading} sx={{ mb: 3 }}>
+          {loading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
+          QR Kod Oluştur
+        </Button>
 
-      {qr && (
-        <div className="mb-4">
-          <img src={qr} alt="2FA QR Code" className="img-fluid mb-2 rounded" style={{ maxWidth: 220 }} />
-          <p className="text-secondary small">
-            Manual entry secret: <code className="text-info">{secret}</code>
-          </p>
-        </div>
-      )}
+        {qr && (
+          <Box mb={3}>
+            <Box
+              component="img"
+              src={qr}
+              alt="2FA QR Code"
+              sx={{ maxWidth: 220, width: '100%', borderRadius: 1, mb: 1 }}
+            />
+            <Typography variant="body2" color="text.secondary">
+              Manuel giriş için secret:{' '}
+              <Box component="code" sx={{ color: 'info.main' }}>{secret}</Box>
+            </Typography>
+          </Box>
+        )}
 
-      <hr className="border-secondary" />
-      <h6 className="mb-3">Verify Code</h6>
-      <form onSubmit={verify}>
-        <input
-          className="form-control text-center mb-3"
-          type="text" placeholder="6-digit code" maxLength={6}
-          value={code} onChange={e => setCode(e.target.value)}
-        />
-        <button className="btn btn-success w-100" disabled={loading}>
-          {loading ? <span className="spinner-border spinner-border-sm" /> : 'Verify'}
-        </button>
-      </form>
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="subtitle2" mb={2}>Kodu Doğrula</Typography>
+        <Box component="form" onSubmit={verify}>
+          <TextField
+            fullWidth
+            placeholder="6 haneli kod"
+            inputProps={{ maxLength: 6, style: { textAlign: 'center' } }}
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+          <Button type="submit" variant="contained" color="success" fullWidth disabled={loading}>
+            {loading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
+            Doğrula
+          </Button>
+        </Box>
 
-      {msg && <div className={`alert alert-${msg.type} mt-3 py-2`}>{msg.text}</div>}
-    </div>
+        {msg && <Alert severity={msg.type} sx={{ mt: 2 }}>{msg.text}</Alert>}
+      </CardContent>
+    </Card>
   )
 }

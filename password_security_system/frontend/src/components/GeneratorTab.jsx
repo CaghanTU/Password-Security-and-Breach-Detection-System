@@ -1,5 +1,10 @@
 import { useState } from 'react'
 import { api } from '../services/api'
+import {
+  Box, Card, CardContent, Typography, Slider, FormControlLabel,
+  Checkbox, Button, TextField, Alert, CircularProgress, Chip,
+  Stack, Grid, Paper, Collapse,
+} from '@mui/material'
 
 export default function GeneratorTab() {
   const [opts, setOpts] = useState({
@@ -36,130 +41,127 @@ export default function GeneratorTab() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const strengthColor = { weak: 'danger', medium: 'warning', strong: 'success' }
+  const strengthColor = { weak: 'error', medium: 'warning', strong: 'success' }
   const prefixLen = opts.prefix.length
   const suffixLen = opts.suffix.length
   const coreLen = Math.max(0, opts.length - prefixLen - suffixLen)
-  const totalLen = opts.length
   const mandatoryConflict = (opts.min_digits + opts.min_symbols) > coreLen
 
   return (
-    <div className="card p-4" style={{ maxWidth: 560 }}>
-      <h5 className="mb-4">Secure Password Generator</h5>
+    <Card sx={{ maxWidth: 560 }}>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="h6" mb={3}>Güvenli Şifre Üret</Typography>
 
-      {/* Length */}
-      <div className="mb-3">
-        <label className="form-label d-flex justify-content-between">
-          <span>Random portion length</span>
-          <strong>
-            {opts.length} characters
-            {(prefixLen || suffixLen) ? ` (core: ${coreLen}, total: ${prefixLen + coreLen + suffixLen})` : ''}
-          </strong>
-        </label>
-        <input type="range" className="form-range" min={4} max={128} value={opts.length}
-          onChange={e => set('length')(+e.target.value)} />
-      </div>
+        {/* Uzunluk */}
+        <Box mb={3}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="body2">Rastgele bölüm uzunluğu</Typography>
+            <Typography variant="body2" fontWeight={700}>
+              {opts.length} karakter
+              {(prefixLen || suffixLen) ? ` (core: ${coreLen}, toplam: ${prefixLen + coreLen + suffixLen})` : ''}
+            </Typography>
+          </Box>
+          <Slider min={4} max={128} value={opts.length} onChange={(_, v) => set('length')(v)} />
+        </Box>
 
-      {/* Character set */}
-      <div className="row mb-2">
-        {[
-          ['use_upper', 'Uppercase (A-Z)'],
-          ['use_lower', 'Lowercase (a-z)'],
-          ['use_digits', 'Digits (0-9)'],
-          ['use_symbols', 'Symbols (!@#...)'],
-        ].map(([k, label]) => (
-          <div className="col-6 form-check ms-2 mb-1" key={k}>
-            <input className="form-check-input" type="checkbox" id={k}
-              checked={opts[k]} onChange={() => toggle(k)} />
-            <label className="form-check-label" htmlFor={k}>{label}</label>
-          </div>
-        ))}
-      </div>
+        {/* Karakter seti */}
+        <Grid container spacing={1} mb={2}>
+          {[
+            ['use_upper', 'Büyük Harf (A-Z)'],
+            ['use_lower', 'Küçük Harf (a-z)'],
+            ['use_digits', 'Rakam (0-9)'],
+            ['use_symbols', 'Sembol (!@#...)'],
+          ].map(([k, label]) => (
+            <Grid size={{ xs: 6 }} key={k}>
+              <FormControlLabel
+                control={<Checkbox checked={opts[k]} onChange={() => toggle(k)} size="small" />}
+                label={<Typography variant="body2">{label}</Typography>}
+              />
+            </Grid>
+          ))}
+        </Grid>
 
-      {/* Advanced options toggle */}
-      <button
-        className="btn btn-sm btn-outline-secondary mb-3"
-        onClick={() => setShowAdvanced(v => !v)}
-      >
-        {showAdvanced ? '▲ Hide Advanced Options' : '▼ Advanced Options'}
-      </button>
+        {/* Gelişmiş toggle */}
+        <Button variant="outlined" size="small" onClick={() => setShowAdvanced(v => !v)} sx={{ mb: 2 }}>
+          {showAdvanced ? '▲ Gelişmiş Seçenekleri Gizle' : '▼ Gelişmiş Seçenekler'}
+        </Button>
 
-      {showAdvanced && (
-        <div className="border rounded p-3 mb-3" style={{ borderColor: '#4a5080', background: '#1e2130' }}>
-          {/* Min digits / symbols */}
-          <div className="row g-2 mb-3">
-            <div className="col-6">
-              <label className="form-label small">Min. Digits: <strong>{opts.min_digits}</strong></label>
-              <input type="range" className="form-range" min={0} max={Math.min(20, opts.length)}
-                value={opts.min_digits}
-                onChange={e => set('min_digits')(+e.target.value)} />
-            </div>
-            <div className="col-6">
-              <label className="form-label small">Min. Symbols: <strong>{opts.min_symbols}</strong></label>
-              <input type="range" className="form-range" min={0} max={Math.min(20, opts.length)}
-                value={opts.min_symbols}
-                onChange={e => set('min_symbols')(+e.target.value)} />
-            </div>
-          </div>
+        <Collapse in={showAdvanced}>
+          <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+            <Grid container spacing={2} mb={2}>
+              <Grid size={{ xs: 6 }}>
+                <Typography variant="caption">Min. Rakam Sayısı: <strong>{opts.min_digits}</strong></Typography>
+                <Slider min={0} max={Math.min(20, opts.length)} value={opts.min_digits}
+                  onChange={(_, v) => set('min_digits')(v)} size="small" />
+              </Grid>
+              <Grid size={{ xs: 6 }}>
+                <Typography variant="caption">Min. Sembol Sayısı: <strong>{opts.min_symbols}</strong></Typography>
+                <Slider min={0} max={Math.min(20, opts.length)} value={opts.min_symbols}
+                  onChange={(_, v) => set('min_symbols')(v)} size="small" />
+              </Grid>
+            </Grid>
 
-          {/* Prefix / Suffix */}
-          <div className="row g-2 mb-3">
-            <div className="col-6">
-              <label className="form-label small">Prefix</label>
-              <input className="form-control form-control-sm" placeholder="e.g. MyApp-"
-                value={opts.prefix} maxLength={32}
-                onChange={e => set('prefix')(e.target.value)} />
-            </div>
-            <div className="col-6">
-              <label className="form-label small">Suffix</label>
-              <input className="form-control form-control-sm" placeholder="e.g. -2026"
-                value={opts.suffix} maxLength={32}
-                onChange={e => set('suffix')(e.target.value)} />
-            </div>
-          </div>
+            <Grid container spacing={2} mb={2}>
+              <Grid size={{ xs: 6 }}>
+                <TextField fullWidth size="small" label="Önek (prefix)" placeholder="örn: MyApp-"
+                  value={opts.prefix} inputProps={{ maxLength: 32 }}
+                  onChange={e => set('prefix')(e.target.value)} />
+              </Grid>
+              <Grid size={{ xs: 6 }}>
+                <TextField fullWidth size="small" label="Sonek (suffix)" placeholder="örn: -2026"
+                  value={opts.suffix} inputProps={{ maxLength: 32 }}
+                  onChange={e => set('suffix')(e.target.value)} />
+              </Grid>
+            </Grid>
 
-          {/* Custom characters */}
-          <div className="mb-2">
-            <label className="form-label small">Extra characters (added to alphabet)</label>
-            <input className="form-control form-control-sm" placeholder="e.g. special symbols"
-              value={opts.custom_chars} maxLength={64}
+            <TextField fullWidth size="small" label="Ekstra karakterler (alfabeye eklenir)"
+              placeholder="örn: ₺€£ veya özel semboller"
+              value={opts.custom_chars} inputProps={{ maxLength: 64 }}
               onChange={e => set('custom_chars')(e.target.value)} />
-          </div>
-        </div>
-      )}
+          </Paper>
+        </Collapse>
 
-      <button className="btn btn-success w-100" onClick={generate} disabled={loading}>
-        {loading ? <span className="spinner-border spinner-border-sm" /> : 'Generate'}
-      </button>
+        <Button variant="contained" color="success" fullWidth onClick={generate} disabled={loading}>
+          {loading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
+          ⚡ Üret
+        </Button>
 
-      {mandatoryConflict && (
-        <div className="alert alert-warning py-2 mt-2 small">
-          Min. digits + symbols ({opts.min_digits + opts.min_symbols}) exceeds core length ({coreLen}).
-          Ratios will be adjusted automatically.
-        </div>
-      )}
+        {mandatoryConflict && (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            ⚠ Min. rakam + sembol ({opts.min_digits + opts.min_symbols}) core uzunluğunu ({coreLen}) aşıyor.
+            Oranlar otomatik küçültülecek; büyük/küçük harf için de yer bırakılacak.
+          </Alert>
+        )}
 
-      {error && <div className="alert alert-danger mt-3 py-2">{error}</div>}
+        {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
 
-      {result && (
-        <div className="mt-4">
-          <div
-            className="p-3 rounded fw-bold font-monospace"
-            style={{ background: '#0a0c12', cursor: 'pointer', wordBreak: 'break-all', fontSize: '1rem', color: '#4ade80' }}
-            onClick={copy}
-            title="Click to copy"
-          >
-            {result.password}
-          </div>
-          <div className="d-flex align-items-center gap-2 mt-2 flex-wrap">
-            <span className={`badge text-bg-${strengthColor[result.strength_label]}`}>{result.strength_label}</span>
-            <small className="text-secondary">Entropy: <strong>{result.entropy_bits} bit</strong></small>
-            <small className="text-secondary">Total length: <strong>{result.password.length}</strong></small>
-            {copied && <span className="badge bg-info">Copied!</span>}
-          </div>
-          <small className="text-muted">Click the password to copy to clipboard</small>
-        </div>
-      )}
-    </div>
+        {result && (
+          <Box mt={3}>
+            <Paper
+              onClick={copy}
+              title="Kopyalamak için tıkla"
+              sx={{
+                p: 2, fontFamily: 'monospace', fontWeight: 700, cursor: 'pointer',
+                wordBreak: 'break-all', fontSize: '1rem', color: 'success.light',
+                bgcolor: 'background.default',
+              }}
+            >
+              {result.password}
+            </Paper>
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" mt={1}>
+              <Chip label={result.strength_label} size="small" color={strengthColor[result.strength_label] ?? 'default'} />
+              <Typography variant="caption" color="text.secondary">
+                Entropi: <strong>{result.entropy_bits} bit</strong>
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Toplam uzunluk: <strong>{result.password.length}</strong>
+              </Typography>
+              {copied && <Chip label="✓ Kopyalandı!" size="small" color="info" />}
+            </Stack>
+            <Typography variant="caption" color="text.secondary">Şifreye tıklayarak panoya kopyala</Typography>
+          </Box>
+        )}
+      </CardContent>
+    </Card>
   )
 }

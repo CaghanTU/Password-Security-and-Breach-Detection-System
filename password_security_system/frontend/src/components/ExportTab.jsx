@@ -1,11 +1,27 @@
 import { useState, useRef } from 'react'
 import { api } from '../services/api'
+import {
+  Box, Card, CardContent, Typography, Button, Alert, CircularProgress,
+  Select, MenuItem, FormControl, InputLabel, Stack,
+} from '@mui/material'
+
+const CSV_FORMATS = [
+  { value: 'auto', label: 'Otomatik Algıla' },
+  { value: 'lastpass', label: 'LastPass CSV' },
+  { value: 'bitwarden', label: 'Bitwarden JSON' },
+  { value: '1password', label: '1Password CSV' },
+]
 
 export default function ExportTab() {
   const [exportLoading, setExportLoading] = useState(false)
   const [importLoading, setImportLoading] = useState(false)
+  const [csvLoading, setCsvLoading] = useState(false)
   const [msg, setMsg] = useState(null)
+  const [csvMsg, setCsvMsg] = useState(null)
+  const [csvFormat, setCsvFormat] = useState('auto')
   const fileRef = useRef(null)
+  const csvFileRef = useRef(null)
+  const [csvFileName, setCsvFileName] = useState('')
 
   async function doExport() {
     setExportLoading(true); setMsg(null)
@@ -18,9 +34,9 @@ export default function ExportTab() {
       a.download = `vault_export_${Date.now()}.enc.json`
       a.click()
       URL.revokeObjectURL(url)
-      setMsg({ type: 'success', text: 'Vault downloaded successfully.' })
+      setMsg({ type: 'success', text: 'Vault başarıyla indirildi.' })
     } catch (err) {
-      setMsg({ type: 'danger', text: err.message })
+      setMsg({ type: 'error', text: err.message })
     } finally {
       setExportLoading(false)
     }
@@ -28,65 +44,116 @@ export default function ExportTab() {
 
   async function doImport() {
     const file = fileRef.current?.files?.[0]
-    if (!file) { setMsg({ type: 'warning', text: 'Please select a file.' }); return }
+    if (!file) { setMsg({ type: 'warning', text: 'Lütfen bir dosya seçin.' }); return }
     setImportLoading(true); setMsg(null)
     try {
       const text = await file.text()
       const payload = JSON.parse(text)
       if (!payload.ciphertext || !payload.iv || !payload.tag) {
-        throw new Error('Invalid vault file format.')
+        throw new Error('Geçersiz vault dosyası formatı.')
       }
       const result = await api.importVault(payload)
       setMsg({
         type: 'success',
-        text: `Import complete: ${result.imported} credentials added, ${result.skipped} skipped.${
-          result.errors.length ? ' Errors: ' + result.errors.slice(0, 3).join('; ') : ''
+        text: `İçe aktarma tamamlandı: ${result.imported} kayıt eklendi, ${result.skipped} atlandı.${
+          result.errors?.length ? ' Hatalar: ' + result.errors.slice(0, 3).join('; ') : ''
         }`,
       })
       if (fileRef.current) fileRef.current.value = ''
     } catch (err) {
-      setMsg({ type: 'danger', text: err.message })
+      setMsg({ type: 'error', text: err.message })
     } finally {
       setImportLoading(false)
     }
   }
 
+  async function doCSVImport() {
+    const file = csvFileRef.current?.files?.[0]
+    if (!file) { setCsvMsg({ type: 'warning', text: 'Lütfen bir dosya seçin.' }); return }
+    setCsvLoading(true); setCsvMsg(null)
+    try {
+      const result = await api.importCSV(file, csvFormat)
+      setCsvMsg({
+        type: 'success',
+        text: `İçe aktarma tamamlandı: ${result.imported} kayıt eklendi, ${result.skipped} atlandı.${
+          result.errors?.length ? ' Hatalar: ' + result.errors.slice(0, 3).join('; ') : ''
+        }`,
+      })
+      setCsvFileName('')
+      if (csvFileRef.current) csvFileRef.current.value = ''
+    } catch (err) {
+      setCsvMsg({ type: 'error', text: err.message })
+    } finally {
+      setCsvLoading(false)
+    }
+  }
+
   return (
-    <div style={{ maxWidth: 540 }}>
+    <Box sx={{ maxWidth: 560 }}>
       {/* Export */}
-      <div className="card p-4 mb-3">
-        <h5 className="mb-2">Export Vault</h5>
-        <p className="text-secondary small mb-3">
-          Your entire vault will be downloaded encrypted with AES-256-GCM.
-          Plain text is never written to disk — your data is safe.
-        </p>
-        <button className="btn btn-outline-primary w-100" onClick={doExport} disabled={exportLoading}>
-          {exportLoading ? <span className="spinner-border spinner-border-sm" /> : 'Download (.enc.json)'}
-        </button>
-      </div>
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>📦 Vault Dışa Aktar</Typography>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            Tüm vault AES-256-GCM ile şifrelenmiş olarak indirilir. Düz metin hiçbir zaman diske yazılmaz.
+          </Typography>
+          <Button variant="outlined" fullWidth onClick={doExport} disabled={exportLoading}>
+            {exportLoading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
+            ⬇ İndir (.enc.json)
+          </Button>
+        </CardContent>
+      </Card>
 
-      {/* Import */}
-      <div className="card p-4">
-        <h5 className="mb-2">Import Vault</h5>
-        <p className="text-secondary small mb-3">
-          Upload a previously exported <code>.enc.json</code> file.
-          Passwords will be decrypted automatically and added to your account.
-          Duplicate entries will be skipped.
-        </p>
-        <div className="mb-3">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".json,.enc.json"
-            className="form-control"
-          />
-        </div>
-        <button className="btn btn-outline-success w-100" onClick={doImport} disabled={importLoading}>
-          {importLoading ? <span className="spinner-border spinner-border-sm" /> : 'Upload & Import'}
-        </button>
-      </div>
+      {/* Vault import */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>📂 Vault İçe Aktar</Typography>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            Daha önce dışa aktardığın <code>.enc.json</code> dosyasını yükle.
+            Şifreler otomatik çözülür ve hesabına eklenir.
+          </Typography>
+          <Button variant="outlined" component="label" fullWidth sx={{ mb: 1.5 }}>
+            Dosya Seç
+            <input ref={fileRef} type="file" accept=".json,.enc.json" hidden />
+          </Button>
+          <Button variant="outlined" color="success" fullWidth onClick={doImport} disabled={importLoading}>
+            {importLoading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
+            ⬆ Yükle ve İçe Aktar
+          </Button>
+          {msg && <Alert severity={msg.type} sx={{ mt: 2 }}>{msg.text}</Alert>}
+        </CardContent>
+      </Card>
 
-      {msg && <div className={`alert alert-${msg.type} mt-3 py-2`}>{msg.text}</div>}
-    </div>
+      {/* CSV/JSON import */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>🔄 Diğer Yöneticilerden İçe Aktar</Typography>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            LastPass, Bitwarden veya 1Password formatlarından şifreleri aktar.
+          </Typography>
+          <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
+            <InputLabel>Format</InputLabel>
+            <Select value={csvFormat} onChange={e => setCsvFormat(e.target.value)} label="Format">
+              {CSV_FORMATS.map(f => <MenuItem key={f.value} value={f.value}>{f.label}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <Button variant="outlined" component="label" fullWidth sx={{ mb: 1.5 }}>
+            {csvFileName || 'Dosya Seç (CSV / JSON)'}
+            <input
+              ref={csvFileRef}
+              type="file"
+              accept=".csv,.json"
+              hidden
+              onChange={e => setCsvFileName(e.target.files?.[0]?.name || '')}
+            />
+          </Button>
+          <Button variant="outlined" color="primary" fullWidth onClick={doCSVImport} disabled={csvLoading}>
+            {csvLoading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
+            ⬆ İçe Aktar
+          </Button>
+          {csvMsg && <Alert severity={csvMsg.type} sx={{ mt: 2 }}>{csvMsg.text}</Alert>}
+        </CardContent>
+      </Card>
+    </Box>
   )
 }

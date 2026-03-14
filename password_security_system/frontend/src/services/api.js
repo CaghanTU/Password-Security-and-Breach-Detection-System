@@ -54,6 +54,26 @@ export const api = {
   getPasswordHistory: (id) =>
     request(`/passwords/${id}/history`),
 
+  bulkDelete: (ids) =>
+    request('/passwords/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) }),
+
+  bulkUpdateCategory: (ids, category) =>
+    request('/passwords/bulk-category', { method: 'POST', body: JSON.stringify({ ids, category }) }),
+
+  // ── TOTP vault ──────────────────────────────────────────────────────
+  setTOTP: (id, secret) =>
+    request(`/passwords/${id}/totp`, { method: 'POST', body: JSON.stringify({ secret }) }),
+
+  getTOTPCode: (id) =>
+    request(`/passwords/${id}/totp/code`),
+
+  removeTOTP: (id) =>
+    request(`/passwords/${id}/totp`, { method: 'DELETE' }),
+
+  // ── Alerts ──────────────────────────────────────────────────────────
+  getAlerts: () => request('/alerts'),
+  markAlertsRead: () => request('/alerts/read', { method: 'POST' }),
+
   // ── Breach ──────────────────────────────────────────────────────────
   checkEmail: (email) =>
     request('/breach/email', { method: 'POST', body: JSON.stringify({ email }) }),
@@ -68,12 +88,34 @@ export const api = {
   // ── Score ────────────────────────────────────────────────────────────
   getScore: () => request('/score'),
   getScoreHistory: () => request('/score/history'),
+  getScoreByCategory: () => request('/score/by-category'),
+
+  downloadReport: async () => {
+    const res = await fetch('/score/report', { credentials: 'include' })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.blob()
+  },
 
   // ── Export ───────────────────────────────────────────────────────────
   exportVault: () => request('/export'),
 
   importVault: (payload) =>
     request('/export/import', { method: 'POST', body: JSON.stringify(payload) }),
+
+  importCSV: (file, format = 'auto') => {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('format', format)
+    return fetch('/export/import-csv', {
+      method: 'POST',
+      credentials: 'include',
+      body: fd,
+    }).then(async res => {
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
+      return data
+    })
+  },
 
   // ── Audit ────────────────────────────────────────────────────────────
   getAudit: (page = 1, per_page = 20) =>
