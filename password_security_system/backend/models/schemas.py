@@ -17,8 +17,8 @@ class LoginRequest(BaseModel):
 
 
 class TwoFASetupResponse(BaseModel):
-    qr_image: str        # data:image/png;base64,...
-    secret: str          # base32 secret for manual entry
+    qr_image: str
+    secret: str
 
 
 class TwoFAVerifyRequest(BaseModel):
@@ -56,8 +56,8 @@ class CredentialUpdate(BaseModel):
 class CredentialResponse(BaseModel):
     id: int
     site_name: str
-    site_username: str          # decrypted
-    password: str               # decrypted
+    site_username: str
+    password: str
     strength_label: str
     is_breached: bool
     breach_count: int
@@ -66,6 +66,7 @@ class CredentialResponse(BaseModel):
     breach_date_status: Optional[str]
     is_stale: bool
     category: str
+    totp_secret: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -77,6 +78,36 @@ class HistoryEntry(BaseModel):
     archived_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ── Bulk operations ───────────────────────────────────────────────────
+
+class BulkDeleteRequest(BaseModel):
+    ids: List[int]
+
+
+class BulkCategoryRequest(BaseModel):
+    ids: List[int]
+    category: str
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v: str) -> str:
+        allowed = {"email", "banking", "social", "work", "other"}
+        if v not in allowed:
+            raise ValueError(f"category must be one of {allowed}")
+        return v
+
+
+# ── TOTP vault ────────────────────────────────────────────────────────
+
+class TOTPSetRequest(BaseModel):
+    secret: str
+
+
+class TOTPCodeResponse(BaseModel):
+    code: str
+    valid_seconds: int
 
 
 # ── Breach ────────────────────────────────────────────────────────────
@@ -114,6 +145,23 @@ class BreachPasswordResponse(BaseModel):
     count: int
 
 
+# ── Alerts ────────────────────────────────────────────────────────────
+
+class AlertEntry(BaseModel):
+    id: int
+    credential_id: Optional[int]
+    message: str
+    is_read: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AlertsResponse(BaseModel):
+    unread_count: int
+    alerts: List[AlertEntry]
+
+
 # ── Generator ─────────────────────────────────────────────────────────
 
 class GenerateRequest(BaseModel):
@@ -122,11 +170,11 @@ class GenerateRequest(BaseModel):
     use_lower: bool = True
     use_digits: bool = True
     use_symbols: bool = True
-    min_digits: int = 0          # guarantee at least N digits
-    min_symbols: int = 0         # guarantee at least N symbols
-    prefix: Optional[str] = ""   # prepend fixed text
-    suffix: Optional[str] = ""   # append fixed text
-    custom_chars: Optional[str] = ""  # extra chars added to alphabet
+    min_digits: int = 0
+    min_symbols: int = 0
+    prefix: Optional[str] = ""
+    suffix: Optional[str] = ""
+    custom_chars: Optional[str] = ""
 
 
 class GenerateResponse(BaseModel):
@@ -150,7 +198,15 @@ class ScoreHistoryEntry(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Export ────────────────────────────────────────────────────────────
+class CategoryStats(BaseModel):
+    category: str
+    total: int
+    weak: int
+    breached: int
+    stale: int
+
+
+# ── Export / Import ───────────────────────────────────────────────────
 
 class ExportResponse(BaseModel):
     ciphertext: str
@@ -162,6 +218,12 @@ class ImportRequest(BaseModel):
     ciphertext: str
     iv: str
     tag: str
+
+
+class ImportCSVResponse(BaseModel):
+    imported: int
+    skipped: int
+    errors: List[str]
 
 
 # ── Audit ─────────────────────────────────────────────────────────────

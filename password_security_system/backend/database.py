@@ -16,31 +16,16 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(Text, unique=True, nullable=False)
-    password_hash = Column(Text, nullable=False)      # Argon2id hash
-    kdf_salt = Column(Text, nullable=False)            # separate salt for key derivation
+    password_hash = Column(Text, nullable=False)
+    kdf_salt = Column(Text, nullable=False)
     failed_attempts = Column(Integer, default=0)
     lockout_until = Column(DateTime, nullable=True)
-    totp_secret = Column(Text, nullable=True)          # base32, only if 2FA enabled
+    totp_secret = Column(Text, nullable=True)
 
     credentials = relationship("Credential", back_populates="owner", cascade="all, delete-orphan")
     score_history = relationship("ScoreHistory", back_populates="owner", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="owner", cascade="all, delete-orphan")
-
-
-def _migrate_add_columns():
-    """Idempotent column additions for schema upgrades."""
-    with engine.connect() as conn:
-        from sqlalchemy import text
-        for col_sql in [
-            "ALTER TABLE credentials ADD COLUMN breach_count INTEGER DEFAULT 0",
-            "ALTER TABLE credentials ADD COLUMN email_breached INTEGER DEFAULT 0",
-            "ALTER TABLE credentials ADD COLUMN email_breach_count INTEGER DEFAULT 0",
-        ]:
-            try:
-                conn.execute(text(col_sql))
-                conn.commit()
-            except Exception:
-                pass  # column already exists
+    breach_alerts = relationship("BreachAlert", back_populates="owner", cascade="all, delete-orphan")
 
 
 class Credential(Base):
@@ -49,19 +34,20 @@ class Credential(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     site_name = Column(Text, nullable=False)
-    site_username = Column(Text, nullable=False)       # encrypted
-    ciphertext = Column(Text, nullable=False)          # AES-256-GCM ciphertext, base64
-    iv = Column(Text, nullable=False)                  # 96-bit nonce, base64
-    tag = Column(Text, nullable=False)                 # GCM auth tag, base64
-    reuse_hash = Column(Text, nullable=False)          # SHA-256 of plaintext password
-    strength_label = Column(Text, nullable=False)      # weak / medium / strong
+    site_username = Column(Text, nullable=False)
+    ciphertext = Column(Text, nullable=False)
+    iv = Column(Text, nullable=False)
+    tag = Column(Text, nullable=False)
+    reuse_hash = Column(Text, nullable=False)
+    strength_label = Column(Text, nullable=False)
     is_breached = Column(Boolean, default=False)
-    breach_count = Column(Integer, default=0)           # HIBP pwned count for password
-    email_breached = Column(Boolean, default=False)    # HIBP email breach
-    email_breach_count = Column(Integer, default=0)   # number of email breaches
-    breach_date_status = Column(Text, nullable=True)   # changed_after / not_rotated
+    breach_count = Column(Integer, default=0)
+    email_breached = Column(Boolean, default=False)
+    email_breach_count = Column(Integer, default=0)
+    breach_date_status = Column(Text, nullable=True)
     is_stale = Column(Boolean, default=False)
-    category = Column(Text, default="other")           # email/banking/social/work/other
+    category = Column(Text, default="other")
+    totp_secret = Column(Text, nullable=True)          # base32 TOTP secret for this site
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -88,8 +74,21 @@ class BreachCache(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(Text, nullable=False, unique=True)
-    result_json = Column(Text, nullable=False)         # JSON string of breach list
+    result_json = Column(Text, nullable=False)
     cached_at = Column(DateTime, default=datetime.utcnow)
+
+
+class BreachAlert(Base):
+    __tablename__ = "breach_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    credential_id = Column(Integer, nullable=True)
+    message = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    owner = relationship("User", back_populates="breach_alerts")
 
 
 class ScoreHistory(Base):
@@ -121,6 +120,23 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def _migrate_add_columns():
+    """Idempotent column additions for schema upgrades."""
+    with engine.connect() as conn:
+        from sqlalchemy import text
+        for col_sql in [
+            "ALTER TABLE credentials ADD COLUMN breach_count INTEGER DEFAULT 0",
+            "ALTER TABLE credentials ADD COLUMN email_breached INTEGER DEFAULT 0",
+            "ALTER TABLE credentials ADD COLUMN email_breach_count INTEGER DEFAULT 0",
+            "ALTER TABLE credentials ADD COLUMN totp_secret TEXT",
+        ]:
+            try:
+                conn.execute(text(col_sql))
+                conn.commit()
+            except Exception:
+                pass  # column already exists
 
 
 def create_tables():

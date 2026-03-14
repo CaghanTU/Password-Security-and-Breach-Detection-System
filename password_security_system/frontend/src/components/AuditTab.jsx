@@ -1,24 +1,43 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../services/api'
+import {
+  Box, Typography, Button, Alert, CircularProgress, Chip, Stack,
+  Grid, TextField, Paper, Collapse,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+} from '@mui/material'
+import {
+  Timeline, TimelineItem, TimelineSeparator, TimelineConnector,
+  TimelineContent, TimelineDot, TimelineOppositeContent,
+} from '@mui/lab'
+import DeleteIcon from '@mui/icons-material/Delete'
+import TableRowsIcon from '@mui/icons-material/TableRows'
+import TimelineIcon from '@mui/icons-material/Timeline'
 
 const ACTION_COLORS = {
-  LOGIN: 'success', LOGIN_FAILED: 'danger', LOGOUT: 'secondary',
+  LOGIN: 'success', LOGIN_FAILED: 'error', LOGOUT: 'default',
   '2FA_ENABLED': 'info', CREDENTIAL_ADD: 'primary', CREDENTIAL_UPDATE: 'warning',
-  CREDENTIAL_DELETE: 'danger', BREACH_CHECK: 'info', EXPORT: 'light',
-  AUDIT_CLEARED: 'danger',
+  CREDENTIAL_DELETE: 'error', BREACH_CHECK: 'info', EXPORT: 'default',
+  AUDIT_CLEARED: 'error',
+}
+
+const ACTION_DOT_COLORS = {
+  LOGIN: 'success', LOGIN_FAILED: 'error', LOGOUT: 'grey',
+  '2FA_ENABLED': 'info', CREDENTIAL_ADD: 'primary', CREDENTIAL_UPDATE: 'warning',
+  CREDENTIAL_DELETE: 'error', BREACH_CHECK: 'info', EXPORT: 'grey',
+  AUDIT_CLEARED: 'error',
 }
 
 export default function AuditTab() {
   const [data, setData] = useState(null)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState('table')   // 'table' | 'timeline'
 
-  // Delete panel state
   const [showDelete, setShowDelete] = useState(false)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo]     = useState('')
   const [deleting, setDeleting]       = useState(false)
-  const [deleteMsg, setDeleteMsg]     = useState(null) // {ok, text}
+  const [deleteMsg, setDeleteMsg]     = useState(null)
   const [confirmAll, setConfirmAll]   = useState(false)
 
   const load = useCallback(async (p) => {
@@ -42,7 +61,7 @@ export default function AuditTab() {
         all ? '' : dateFrom,
         all ? '' : dateTo,
       )
-      setDeleteMsg({ ok: true, text: `${res.deleted} records deleted.` })
+      setDeleteMsg({ ok: true, text: `${res.deleted} kayıt silindi.` })
       setPage(1)
       load(1)
     } catch (e) {
@@ -54,109 +73,156 @@ export default function AuditTab() {
   }
 
   return (
-    <div>
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <h5 className="mb-0">Audit Log</h5>
-        <button
-          className={`btn btn-sm ${showDelete ? 'btn-outline-secondary' : 'btn-outline-danger'}`}
-          onClick={() => { setShowDelete(v => !v); setDeleteMsg(null); setConfirmAll(false) }}
-        >
-          {showDelete ? 'Cancel' : 'Clear Records'}
-        </button>
-      </div>
+    <Box>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2} flexWrap="wrap" gap={1}>
+        <Typography variant="h6">Audit Log</Typography>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant={viewMode === 'table' ? 'contained' : 'outlined'}
+            size="small" startIcon={<TableRowsIcon />}
+            onClick={() => setViewMode('table')}
+          >Tablo</Button>
+          <Button
+            variant={viewMode === 'timeline' ? 'contained' : 'outlined'}
+            size="small" startIcon={<TimelineIcon />}
+            onClick={() => setViewMode('timeline')}
+          >Timeline</Button>
+          <Button
+            variant="outlined"
+            color={showDelete ? 'inherit' : 'error'}
+            size="small"
+            startIcon={showDelete ? null : <DeleteIcon />}
+            onClick={() => { setShowDelete(v => !v); setDeleteMsg(null); setConfirmAll(false) }}
+          >
+            {showDelete ? '✕ İptal' : 'Temizle'}
+          </Button>
+        </Stack>
+      </Stack>
 
       {/* Delete panel */}
-      {showDelete && (
-        <div className="card p-3 mb-4" style={{ border: '1px solid #dc354555', background: '#1a0d0d' }}>
-          <div className="fw-semibold mb-2" style={{ color: '#dc3545' }}>Delete Records</div>
-
-          <div className="row g-2 mb-3">
-            <div className="col-sm-6">
-              <label className="form-label small text-secondary">Start date</label>
-              <input type="date" className="form-control form-control-sm"
-                value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-            </div>
-            <div className="col-sm-6">
-              <label className="form-label small text-secondary">End date</label>
-              <input type="date" className="form-control form-control-sm"
-                value={dateTo} onChange={e => setDateTo(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="d-flex gap-2 flex-wrap">
-            <button
-              className="btn btn-sm btn-danger"
+      <Collapse in={showDelete}>
+        <Paper variant="outlined" sx={{ p: 2, mb: 3, borderColor: 'error.dark' }}>
+          <Typography fontWeight={600} color="error.main" mb={1}>Kayıt Silme</Typography>
+          <Grid container spacing={2} mb={2}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField fullWidth size="small" label="Başlangıç tarihi" type="date"
+                value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                slotProps={{ inputLabel: { shrink: true } }} />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField fullWidth size="small" label="Bitiş tarihi" type="date"
+                value={dateTo} onChange={e => setDateTo(e.target.value)}
+                slotProps={{ inputLabel: { shrink: true } }} />
+            </Grid>
+          </Grid>
+          <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+            <Button variant="contained" color="error" size="small"
               disabled={deleting || (!dateFrom && !dateTo)}
               onClick={() => handleDelete(false)}
             >
-              {deleting ? <span className="spinner-border spinner-border-sm" /> : 'Delete Date Range'}
-            </button>
-
+              {deleting ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+              🗑 Tarih Aralığını Sil
+            </Button>
             {!confirmAll ? (
-              <button className="btn btn-sm btn-outline-danger" onClick={() => setConfirmAll(true)}>
-                Delete All
-              </button>
+              <Button variant="outlined" color="error" size="small" onClick={() => setConfirmAll(true)}>
+                Tümünü Sil
+              </Button>
             ) : (
               <>
-                <span className="small text-danger align-self-center">Are you sure?</span>
-                <button className="btn btn-sm btn-danger" disabled={deleting} onClick={() => handleDelete(true)}>
-                  {deleting ? <span className="spinner-border spinner-border-sm" /> : 'Yes, Delete All'}
-                </button>
-                <button className="btn btn-sm btn-outline-secondary" onClick={() => setConfirmAll(false)}>No</button>
+                <Typography variant="caption" color="error.main" alignSelf="center">Emin misin?</Typography>
+                <Button variant="contained" color="error" size="small" disabled={deleting} onClick={() => handleDelete(true)}>
+                  {deleting ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+                  Evet, Tümünü Sil
+                </Button>
+                <Button variant="outlined" size="small" onClick={() => setConfirmAll(false)}>Hayır</Button>
               </>
             )}
-          </div>
-
+          </Stack>
           {deleteMsg && (
-            <div className={`alert ${deleteMsg.ok ? 'alert-success' : 'alert-danger'} mt-3 py-2 mb-0`}>
+            <Alert severity={deleteMsg.ok ? 'success' : 'error'} sx={{ mt: 2 }}>
               {deleteMsg.text}
-            </div>
+            </Alert>
           )}
-        </div>
-      )}
+        </Paper>
+      </Collapse>
 
       {loading ? (
-        <div className="text-center py-5"><div className="spinner-border text-primary" /></div>
+        <Box sx={{ textAlign: 'center', py: 5 }}><CircularProgress /></Box>
       ) : !data || !data.items.length ? (
-        <p className="text-secondary">No audit records yet.</p>
+        <Typography color="text.secondary">Henüz kayıt yok.</Typography>
       ) : (
         <>
-          <p className="text-secondary small">Page {data.page} — {data.total} total records</p>
-          <div className="table-responsive">
-            <table className="table table-dark table-hover align-middle">
-              <thead>
-                <tr>
-                  <th>Date / Time</th>
-                  <th>Action</th>
-                  <th>IP Address</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map(e => (
-                  <tr key={e.id}>
-                    <td className="text-secondary small">{new Date(e.created_at).toLocaleString()}</td>
-                    <td>
-                      <span className={`badge text-bg-${ACTION_COLORS[e.action] ?? 'secondary'}`}>
-                        {e.action}
-                      </span>
-                    </td>
-                    <td className="text-secondary small font-monospace">{e.ip_address ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="d-flex gap-2 mt-2">
-            <button className="btn btn-sm btn-outline-secondary" onClick={() => changePage(-1)} disabled={page <= 1}>
-              Previous
-            </button>
-            <button className="btn btn-sm btn-outline-secondary" onClick={() => changePage(1)}
-              disabled={data.items.length < 20}>
-              Next
-            </button>
-          </div>
+          <Typography variant="body2" color="text.secondary" mb={1}>
+            Sayfa {data.page} — Toplam {data.total} kayıt
+          </Typography>
+
+          {viewMode === 'table' ? (
+            <>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Tarih / Saat</TableCell>
+                      <TableCell>Aksiyon</TableCell>
+                      <TableCell>IP Adresi</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {data.items.map(e => (
+                      <TableRow key={e.id} hover>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {new Date(e.created_at).toLocaleString('tr-TR')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={e.action} size="small" color={ACTION_COLORS[e.action] ?? 'default'} />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                            {e.ip_address ?? '—'}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </>
+          ) : (
+            <Timeline position="right">
+              {data.items.map((e, idx) => (
+                <TimelineItem key={e.id}>
+                  <TimelineOppositeContent sx={{ flex: 0.25, fontSize: '0.75rem', color: 'text.secondary', py: 1.5 }}>
+                    {new Date(e.created_at).toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                  </TimelineOppositeContent>
+                  <TimelineSeparator>
+                    <TimelineDot color={ACTION_DOT_COLORS[e.action] ?? 'grey'} sx={{ my: 1 }} />
+                    {idx < data.items.length - 1 && <TimelineConnector />}
+                  </TimelineSeparator>
+                  <TimelineContent sx={{ py: 1.5 }}>
+                    <Chip label={e.action} size="small" color={ACTION_COLORS[e.action] ?? 'default'} />
+                    {e.ip_address && (
+                      <Typography variant="caption" color="text.secondary" sx={{ ml: 1, fontFamily: 'monospace' }}>
+                        {e.ip_address}
+                      </Typography>
+                    )}
+                  </TimelineContent>
+                </TimelineItem>
+              ))}
+            </Timeline>
+          )}
+
+          <Stack direction="row" spacing={1} mt={2}>
+            <Button variant="outlined" size="small" onClick={() => changePage(-1)} disabled={page <= 1}>
+              ← Önceki
+            </Button>
+            <Button variant="outlined" size="small" onClick={() => changePage(1)} disabled={data.items.length < 20}>
+              Sonraki →
+            </Button>
+          </Stack>
         </>
       )}
-    </div>
+    </Box>
   )
 }
