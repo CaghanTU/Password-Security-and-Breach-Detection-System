@@ -5,3 +5,5 @@ __pycache__/
 node_modules/
 dist/
 .venv/
+/package-lock.json
+password_security_system/backend_log.txt
