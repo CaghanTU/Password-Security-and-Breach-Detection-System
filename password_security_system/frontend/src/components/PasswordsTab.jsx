@@ -16,9 +16,18 @@ import QrCodeIcon from '@mui/icons-material/QrCode'
 const CATEGORIES = ['', 'email', 'banking', 'social', 'work', 'other']
 const CAT_LABELS  = { '': 'Tümü', email: 'E-posta', banking: 'Bankacılık', social: 'Sosyal', work: 'İş', other: 'Diğer' }
 const STRENGTH_COLOR = { weak: 'error', medium: 'warning', strong: 'success' }
+const STRENGTH_TEXT = { weak: 'zayıf', medium: 'orta', strong: 'güçlü' }
 
 function StrengthBadge({ label }) {
-  return <Chip label={label} size="small" color={STRENGTH_COLOR[label] ?? 'default'} />
+  return <Chip label={STRENGTH_TEXT[label] ?? label} size="small" color={STRENGTH_COLOR[label] ?? 'default'} />
+}
+
+function SecurityStatusChip({ cred }) {
+  const critical = cred.is_breached || cred.email_breached || cred.breach_date_status === 'not_rotated'
+  const warning = cred.is_stale
+  if (critical) return <Chip label="güvenlik: riskli" size="small" color="error" />
+  if (warning) return <Chip label="güvenlik: dikkat" size="small" color="warning" />
+  return <Chip label="güvenlik: iyi" size="small" color="success" />
 }
 
 function TOTPPanel({ credId }) {
@@ -186,6 +195,7 @@ function CredentialRow({ cred, onEdit, onDelete, selected, onSelect }) {
           <Typography variant="caption" color="text.secondary">{cred.site_username}</Typography>
         </Box>
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" onClick={e => e.stopPropagation()}>
+          <SecurityStatusChip cred={cred} />
           <StrengthBadge label={cred.strength_label} />
           <Typography
             component="code"
@@ -204,8 +214,14 @@ function CredentialRow({ cred, onEdit, onDelete, selected, onSelect }) {
           <Grid container spacing={1} sx={{ mt: 1 }}>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ p: 1, borderRadius: 1, bgcolor: 'background.default' }}>
-                <Typography variant="caption" color="text.secondary">Güç: </Typography>
+                <Typography variant="caption" color="text.secondary">Parola karmaşıklığı: </Typography>
                 <StrengthBadge label={cred.strength_label} />
+              </Box>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Box sx={{ p: 1, borderRadius: 1, bgcolor: 'background.default' }}>
+                <Typography variant="caption" color="text.secondary">Güvenlik durumu: </Typography>
+                <SecurityStatusChip cred={cred} />
               </Box>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
@@ -222,6 +238,15 @@ function CredentialRow({ cred, onEdit, onDelete, selected, onSelect }) {
                 {cred.is_breached
                   ? <Typography component="span" variant="caption" fontWeight={700} color="error.main">Evet — {cred.breach_count.toLocaleString()} kez</Typography>
                   : <Typography component="span" variant="caption" fontWeight={700} color="success.main">Hayır</Typography>
+                }
+              </Box>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Box sx={{ p: 1, borderRadius: 1, bgcolor: 'background.default' }}>
+                <Typography variant="caption" color="text.secondary">E-posta ihlali: </Typography>
+                {cred.email_breached
+                  ? <Typography component="span" variant="caption" fontWeight={700} color="error.main">Evet — {cred.email_breach_count} kez</Typography>
+                  : <Typography component="span" variant="caption" fontWeight={700} color="success.main">Hayır — 0</Typography>
                 }
               </Box>
             </Grid>

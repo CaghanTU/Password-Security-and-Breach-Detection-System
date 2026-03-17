@@ -45,6 +45,61 @@ password_security_system/
 │       └── services/           # Backend ile iletişim kuran API servisleri (api.js)
 ```
 
+## Risk Skoru Metodolojisi (V2)
+
+Sistem, risk skorunu sabit ceza toplamı yerine normalize oranlar üzerinden hesaplar. Bu sayede az kayıtlı ve çok kayıtlı kullanıcılar arasında daha adil bir karşılaştırma yapılır.
+
+### Formül
+
+1. **Ağırlıklı risk** hesaplanır:
+
+```text
+base_risk =
+	0.30 * weak_ratio
+	+ 0.10 * medium_ratio
+	+ 0.20 * reused_ratio
+	+ 0.25 * breach_any_ratio
+	+ 0.10 * stale_ratio
+	+ 0.05 * not_rotated_ratio
+```
+
+2. **Temel skor** üretilir:
+
+```text
+base_score = round(100 * (1 - base_risk))
+```
+
+3. **Pozitif güvenlik bonusları** eklenir:
+
+```text
+bonus = round(8 * totp_ratio) + round(5 * unique_ratio)
+score = clamp(base_score + bonus, 0, 100)
+```
+
+### Kısa Açıklama
+
+- `weak_ratio`: Zayıf parola oranı
+- `medium_ratio`: Orta seviye parola oranı
+- `reused_ratio`: Tekrar kullanılan parola oranı
+- `breach_any_ratio`: Şifre veya e-posta ihlali görülen kayıt oranı
+- `stale_ratio`: 90 günden eski parola oranı
+- `not_rotated_ratio`: İhlal sonrası güncellenmeyen parola oranı
+- `totp_ratio`: TOTP aktif kayıt oranı (bonus)
+- `unique_ratio`: Benzersiz parola oranı (bonus)
+
+### Stabilizasyon (Skor Geçmişi)
+
+Skor geçmişi trend grafiği için saklanır. Aynı skor değeri sürekli hesaplanıyorsa gereksiz history şişmesini önlemek için kayıt atımı throttle edilir (minimum zaman aralığı uygulanır).
+
+## Dış API Bağımlılığı Notu
+
+Projede dış servis olarak Have I Been Pwned (HIBP) yalnızca ihlal zenginleştirmesi için kullanılır.
+
+- Çekirdek yetenekler (şifre kasası, şifreleme, local risk skoru, TOTP, audit, import/export) **dış API olmadan da çalışır**.
+- HIBP erişilemezse sistemin temel işlevleri durmaz; yalnızca ihlal doğrulama kapsamı azalır.
+
+Bu mimari, projeyi “tek API çağrısına bağlı bir demo” olmaktan çıkarıp, bağımsız çalışan bir güvenlik sistemi haline getirir.
+
 ## Kurulum ve Çalıştırma
 
 ### Backend'i Ayağa Kaldırma

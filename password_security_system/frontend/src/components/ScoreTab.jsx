@@ -25,6 +25,10 @@ function ScoreCircle({ score }) {
   )
 }
 
+function pct(v) {
+  return `${Math.round((v || 0) * 100)}%`
+}
+
 export default function ScoreTab() {
   const [data, setData] = useState(null)
   const [history, setHistory] = useState([])
@@ -123,13 +127,19 @@ export default function ScoreTab() {
   }
 
   const rows = [
+    { label: 'Model', value: b.model_version ?? 'v1', color: null },
     { label: 'Toplam kayıt', value: b.total_credentials, color: null },
-    { label: 'Zayıf şifre', value: `${b.weak_count} (−${5 * b.weak_count})`, color: b.weak_count > 0 ? 'error.main' : null },
-    { label: 'Tekrar kullanılan', value: `${b.reused_count} (−${8 * b.reused_count})`, color: b.reused_count > 0 ? 'warning.main' : null },
-    { label: 'Şifre ihlali', value: `${b.breached_count} (−${15 * b.breached_count})`, color: b.breached_count > 0 ? 'error.main' : null },
-    { label: 'E-posta ihlali', value: `${b.email_breached_count} (−${10 * b.email_breached_count})`, color: b.email_breached_count > 0 ? 'error.main' : null },
-    { label: 'Eski (>90 gün)', value: `${b.stale_count} (−${3 * b.stale_count})`, color: b.stale_count > 0 ? 'warning.main' : null },
-    { label: 'İhlal sonrası güncellenmedi', value: `${b.not_rotated_count} (−${5 * b.not_rotated_count})`, color: b.not_rotated_count > 0 ? 'error.main' : null },
+    { label: 'Zayıf şifre', value: `${b.weak_count} (${pct(b.weak_ratio)})`, color: b.weak_count > 0 ? 'error.main' : null },
+    { label: 'Orta seviye', value: `${b.medium_count ?? 0} (${pct(b.medium_ratio)})`, color: (b.medium_count ?? 0) > 0 ? 'warning.main' : null },
+    { label: 'Tekrar kullanılan', value: `${b.reused_count} (${pct(b.reused_ratio)})`, color: b.reused_count > 0 ? 'warning.main' : null },
+    { label: 'Şifre ihlali', value: `${b.breached_count}`, color: b.breached_count > 0 ? 'error.main' : null },
+    { label: 'E-posta ihlali', value: `${b.email_breached_count}`, color: b.email_breached_count > 0 ? 'error.main' : null },
+    { label: 'Toplam ihlalli kayıt', value: `${b.breach_any_count ?? 0} (${pct(b.breach_any_ratio)})`, color: (b.breach_any_count ?? 0) > 0 ? 'error.main' : null },
+    { label: 'Eski (>90 gün)', value: `${b.stale_count} (${pct(b.stale_ratio)})`, color: b.stale_count > 0 ? 'warning.main' : null },
+    { label: 'İhlal sonrası güncellenmedi', value: `${b.not_rotated_count} (${pct(b.not_rotated_ratio)})`, color: b.not_rotated_count > 0 ? 'error.main' : null },
+    { label: 'TOTP aktif kayıt', value: `${b.totp_enabled_count ?? 0} (${pct(b.totp_ratio)})`, color: (b.totp_enabled_count ?? 0) > 0 ? 'info.main' : null },
+    { label: 'Temel skor', value: `${b.base_score ?? data.score}`, color: null },
+    { label: 'Bonus (TOTP + Benzersizlik)', value: `+${b.bonus_total ?? 0}`, color: (b.bonus_total ?? 0) > 0 ? 'success.main' : null },
   ]
 
   return (
