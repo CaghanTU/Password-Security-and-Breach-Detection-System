@@ -51,7 +51,7 @@ def _import_rows(rows: list[dict], db: Session, user_id: int, key: bytes) -> dic
             db, user_id, key, site_name, site_username or site_name, password, category, "import"
         )
         if "error" in result:
-            if result["error"] == "reuse":
+            if result["error"] in {"reuse", "reuse_detected", "too_similar"}:
                 skipped += 1
             else:
                 errors.append(f"{site_name}: {result['message']}")

@@ -26,6 +26,9 @@ class User(Base):
     score_history = relationship("ScoreHistory", back_populates="owner", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="owner", cascade="all, delete-orphan")
     breach_alerts = relationship("BreachAlert", back_populates="owner", cascade="all, delete-orphan")
+    recovery_codes = relationship("RecoveryCode", back_populates="owner", cascade="all, delete-orphan")
+    breach_incidents = relationship("BreachIncident", back_populates="owner", cascade="all, delete-orphan")
+    health_snapshots = relationship("HealthSnapshot", back_populates="owner", cascade="all, delete-orphan")
 
 
 class Credential(Base):
@@ -39,6 +42,7 @@ class Credential(Base):
     iv = Column(Text, nullable=False)
     tag = Column(Text, nullable=False)
     reuse_hash = Column(Text, nullable=False)
+    site_username_hash = Column(Text, nullable=True)
     strength_label = Column(Text, nullable=False)
     is_breached = Column(Boolean, default=False)
     breach_count = Column(Integer, default=0)
@@ -53,6 +57,7 @@ class Credential(Base):
 
     owner = relationship("User", back_populates="credentials")
     history = relationship("PasswordHistory", back_populates="credential", cascade="all, delete-orphan")
+    breach_incidents = relationship("BreachIncident", back_populates="credential", cascade="all, delete-orphan")
 
 
 class PasswordHistory(Base):
@@ -91,6 +96,37 @@ class BreachAlert(Base):
     owner = relationship("User", back_populates="breach_alerts")
 
 
+class RecoveryCode(Base):
+    __tablename__ = "recovery_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    code_hash = Column(Text, nullable=False)
+    is_used = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    used_at = Column(DateTime, nullable=True)
+
+    owner = relationship("User", back_populates="recovery_codes")
+
+
+class BreachIncident(Base):
+    __tablename__ = "breach_incidents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    credential_id = Column(Integer, ForeignKey("credentials.id"), nullable=False)
+    status = Column(Text, default="open")
+    email_hash = Column(Text, nullable=True)
+    breach_names_json = Column(Text, default="[]")
+    latest_breach_date = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    resolved_at = Column(DateTime, nullable=True)
+
+    owner = relationship("User", back_populates="breach_incidents")
+    credential = relationship("Credential", back_populates="breach_incidents")
+
+
 class ScoreHistory(Base):
     __tablename__ = "score_history"
 
@@ -100,6 +136,23 @@ class ScoreHistory(Base):
     calculated_at = Column(DateTime, default=datetime.utcnow)
 
     owner = relationship("User", back_populates="score_history")
+
+
+class HealthSnapshot(Base):
+    __tablename__ = "health_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    score = Column(Integer, nullable=False)
+    weak_count = Column(Integer, default=0)
+    medium_count = Column(Integer, default=0)
+    reused_count = Column(Integer, default=0)
+    breach_any_count = Column(Integer, default=0)
+    stale_count = Column(Integer, default=0)
+    totp_enabled_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    owner = relationship("User", back_populates="health_snapshots")
 
 
 class AuditLog(Base):
@@ -131,6 +184,7 @@ def _migrate_add_columns():
             "ALTER TABLE credentials ADD COLUMN email_breached INTEGER DEFAULT 0",
             "ALTER TABLE credentials ADD COLUMN email_breach_count INTEGER DEFAULT 0",
             "ALTER TABLE credentials ADD COLUMN totp_secret TEXT",
+            "ALTER TABLE credentials ADD COLUMN site_username_hash TEXT",
         ]:
             try:
                 conn.execute(text(col_sql))

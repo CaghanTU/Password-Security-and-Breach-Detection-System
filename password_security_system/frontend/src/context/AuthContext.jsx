@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { api } from '../services/api'
-
-const AuthContext = createContext(null)
+import { AuthContext } from './auth-context'
 
 export function AuthProvider({ children }) {
   const [loggedIn, setLoggedIn] = useState(null) // null=unknown, true, false
@@ -10,14 +9,14 @@ export function AuthProvider({ children }) {
     try {
       await api.getScore()
       setLoggedIn(true)
-    } catch (e) {
+    } catch {
       // 401 → oturum yok; diğer hatalar (network vb.) → yine oturum yok
       setLoggedIn(false)
     }
   }, [])
 
-  const login = useCallback(async (username, password, totp) => {
-    await api.login(username, password, totp || undefined)
+  const login = useCallback(async (username, password, totp, recoveryCode) => {
+    await api.login(username, password, totp || undefined, recoveryCode || undefined)
     setLoggedIn(true)
   }, [])
 
@@ -32,5 +31,3 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   )
 }
-
-export const useAuth = () => useContext(AuthContext)

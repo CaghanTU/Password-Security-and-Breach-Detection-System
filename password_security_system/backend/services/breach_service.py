@@ -7,7 +7,8 @@ import requests
 from sqlalchemy.orm import Session
 
 from config import HIBP_API_KEY
-from database import BreachCache, Credential
+from database import BreachCache, BreachIncident, Credential
+from services.crypto_service import hash_lookup_value
 
 HIBP_BREACH_URL = "https://haveibeenpwned.com/api/v3/breachedaccount/{email}?truncateResponse=false"
 HIBP_RANGE_URL = "https://api.pwnedpasswords.com/range/{prefix}"
@@ -36,6 +37,135 @@ def _save_cache(db: Session, email: str, breaches: list) -> None:
         entry = BreachCache(email=email, result_json=json.dumps(breaches))
         db.add(entry)
     db.commit()
+
+
+def _extract_breach_names(email_breaches: list[dict]) -> list[str]:
+    names = {b.get("name") or b.get("Name") or "" for b in email_breaches}
+    return sorted(name for name in names if name)
+
+
+def _latest_breach_date(email_breaches: list[dict]) -> Optional[datetime]:
+    dates: list[datetime] = []
+    for breach in email_breaches:
+        raw_date = breach.get("breach_date") or breach.get("BreachDate")
+        if not raw_date:
+            continue
+        try:
+            dates.append(datetime.strptime(raw_date, "%Y-%m-%d"))
+        except ValueError:
+            continue
+    return max(dates) if dates else None
+
+
+def _resolve_open_incidents(db: Session, credential: Credential, now: datetime) -> None:
+    open_incidents = (
+        db.query(BreachIncident)
+        .filter(
+            BreachIncident.user_id == credential.user_id,
+            BreachIncident.credential_id == credential.id,
+            BreachIncident.status == "open",
+        )
+        .all()
+    )
+    for incident in open_incidents:
+        incident.status = "resolved"
+        incident.resolved_at = now
+        incident.updated_at = now
+
+
+def _apply_email_breach_state(
+    db: Session,
+    credential: Credential,
+    email_breaches: list[dict],
+    email_hash: Optional[str] = None,
+) -> None:
+    now = datetime.utcnow()
+    names = _extract_breach_names(email_breaches)
+    latest_breach = _latest_breach_date(email_breaches)
+
+    credential.email_breached = len(email_breaches) > 0
+    credential.email_breach_count = len(email_breaches)
+    if email_hash:
+        credential.site_username_hash = email_hash
+
+    if not email_breaches:
+        credential.breach_date_status = None
+        _resolve_open_incidents(db, credential, now)
+        return
+
+    ref = credential.updated_at or credential.created_at
+    if latest_breach:
+        credential.breach_date_status = "changed_after" if ref and ref > latest_breach else "not_rotated"
+    else:
+        credential.breach_date_status = "investigate"
+
+    if credential.breach_date_status == "changed_after":
+        _resolve_open_incidents(db, credential, now)
+        return
+
+    incident = (
+        db.query(BreachIncident)
+        .filter(
+            BreachIncident.user_id == credential.user_id,
+            BreachIncident.credential_id == credential.id,
+            BreachIncident.status == "open",
+        )
+        .order_by(BreachIncident.created_at.desc())
+        .first()
+    )
+    if not incident:
+        incident = BreachIncident(
+            user_id=credential.user_id,
+            credential_id=credential.id,
+            status="open",
+            created_at=now,
+        )
+        db.add(incident)
+
+    incident.email_hash = email_hash or credential.site_username_hash
+    incident.breach_names_json = json.dumps(names, ensure_ascii=False)
+    incident.latest_breach_date = latest_breach
+    incident.updated_at = now
+    incident.resolved_at = None
+
+
+def apply_email_breach_result(
+    db: Session,
+    credential: Credential,
+    email_breaches: list[dict],
+    email_hash: Optional[str] = None,
+    commit: bool = True,
+) -> None:
+    _apply_email_breach_state(db, credential, email_breaches, email_hash=email_hash)
+    if commit:
+        db.commit()
+
+
+def sync_email_breach_state_for_user(
+    db: Session,
+    user_id: int,
+    email: str,
+    email_breaches: list[dict],
+) -> list[Credential]:
+    email_hash = hash_lookup_value(email)
+    if not email_hash:
+        return []
+
+    credentials = (
+        db.query(Credential)
+        .filter(
+            Credential.user_id == user_id,
+            Credential.site_username_hash == email_hash,
+        )
+        .all()
+    )
+    if not credentials:
+        return []
+
+    for credential in credentials:
+        _apply_email_breach_state(db, credential, email_breaches, email_hash=email_hash)
+    db.commit()
+    return credentials
 
 
 def check_email(db: Session, email: str, user_id: int) -> dict:
@@ -82,6 +212,7 @@ def check_email(db: Session, email: str, user_id: int) -> dict:
         for b in raw_breaches
     ]
 
+    sync_email_breach_state_for_user(db, user_id, email, breaches)
     audit_service.log(db, user_id, "BREACH_CHECK", None)
     return {
         "email": email,
@@ -125,34 +256,4 @@ def update_breach_status(
     Compare the credential's updated_at against HIBP BreachDate values.
     Sets breach_date_status = 'changed_after' or 'not_rotated'.
     """
-    if not email_breaches:
-        credential.is_breached = False
-        credential.breach_date_status = None
-        db.commit()
-        return
-
-    credential.is_breached = True
-    # Use the most recent breach date for comparison
-    breach_dates = []
-    for b in email_breaches:
-        bd = b.get("breach_date")
-        if bd:
-            try:
-                breach_dates.append(datetime.strptime(bd, "%Y-%m-%d"))
-            except ValueError:
-                pass
-
-    if not breach_dates:
-        credential.breach_date_status = None
-        db.commit()
-        return
-
-    latest_breach = max(breach_dates)
-    ref = credential.updated_at or credential.created_at
-
-    if ref and ref > latest_breach:
-        credential.breach_date_status = "changed_after"
-    else:
-        credential.breach_date_status = "not_rotated"
-
-    db.commit()
+    apply_email_breach_result(db, credential, email_breaches)

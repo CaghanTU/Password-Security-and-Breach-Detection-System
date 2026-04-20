@@ -15,3 +15,9 @@ SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER: str = os.getenv("SMTP_USER", "")
 SMTP_PASS: str = os.getenv("SMTP_PASS", "")
 ALERT_EMAIL: str = os.getenv("ALERT_EMAIL", "")  # recipient address for breach alerts
+
+# AI generation (OpenAI-compatible API)
+AI_API_KEY: str = os.getenv("AI_API_KEY", "")
+AI_BASE_URL: str = os.getenv("AI_BASE_URL", "https://api.openai.com/v1")
+AI_MODEL: str = os.getenv("AI_MODEL", "gpt-4o-mini")
+AI_TIMEOUT_SECONDS: int = int(os.getenv("AI_TIMEOUT_SECONDS", "20"))

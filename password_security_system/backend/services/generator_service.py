@@ -2,7 +2,7 @@ import math
 import secrets
 import string
 
-from zxcvbn import zxcvbn
+from services.strength_service import calculate_strength_label
 
 
 def generate_password(
@@ -96,14 +96,7 @@ def generate_password(
     # Entropy based on core alphabet (prefix/suffix are fixed so add 0 entropy)
     entropy_bits = core_len * math.log2(len(alphabet)) if len(alphabet) > 1 and core_len > 0 else 0
 
-    zx = zxcvbn(password)
-    score = zx["score"]
-    if score <= 1:
-        label = "weak"
-    elif score == 2:
-        label = "medium"
-    else:
-        label = "strong"
+    label = calculate_strength_label(password)
 
     return {
         "password": password,
@@ -136,14 +129,7 @@ def generate_password(
     # Shannon entropy: H = length × log2(|alphabet|)
     entropy_bits = length * math.log2(len(alphabet))
 
-    zx = zxcvbn(password)
-    score = zx["score"]
-    if score <= 1:
-        label = "weak"
-    elif score == 2:
-        label = "medium"
-    else:
-        label = "strong"
+    label = calculate_strength_label(password)
 
     return {
         "password": password,

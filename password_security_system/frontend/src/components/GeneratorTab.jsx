@@ -83,7 +83,7 @@ export default function GeneratorTab() {
 
         {/* Gelişmiş toggle */}
         <Button variant="outlined" size="small" onClick={() => setShowAdvanced(v => !v)} sx={{ mb: 2 }}>
-          {showAdvanced ? '▲ Gelişmiş Seçenekleri Gizle' : '▼ Gelişmiş Seçenekler'}
+          {showAdvanced ? 'Gelişmiş seçenekleri gizle' : 'Gelişmiş seçenekler'}
         </Button>
 
         <Collapse in={showAdvanced}>
@@ -123,12 +123,12 @@ export default function GeneratorTab() {
 
         <Button variant="contained" color="success" fullWidth onClick={generate} disabled={loading}>
           {loading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
-          ⚡ Üret
+          Parola üret
         </Button>
 
         {mandatoryConflict && (
           <Alert severity="warning" sx={{ mt: 2 }}>
-            ⚠ Min. rakam + sembol ({opts.min_digits + opts.min_symbols}) core uzunluğunu ({coreLen}) aşıyor.
+            Min. rakam + sembol ({opts.min_digits + opts.min_symbols}) core uzunluğunu ({coreLen}) aşıyor.
             Oranlar otomatik küçültülecek; büyük/küçük harf için de yer bırakılacak.
           </Alert>
         )}
@@ -156,7 +156,7 @@ export default function GeneratorTab() {
               <Typography variant="caption" color="text.secondary">
                 Toplam uzunluk: <strong>{result.password.length}</strong>
               </Typography>
-              {copied && <Chip label="✓ Kopyalandı!" size="small" color="info" />}
+              {copied && <Chip label="Kopyalandı" size="small" color="info" />}
             </Stack>
             <Typography variant="caption" color="text.secondary">Şifreye tıklayarak panoya kopyala</Typography>
           </Box>

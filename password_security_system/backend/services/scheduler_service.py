@@ -8,6 +8,7 @@ import requests
 
 from config import HIBP_API_KEY
 from database import SessionLocal, User, Credential, BreachCache, BreachAlert
+from services.crypto_service import hash_lookup_value
 
 logger = logging.getLogger(__name__)
 
@@ -81,30 +82,49 @@ def run_breach_scan() -> None:
             if not added:
                 continue
 
-            # Find users whose credentials have email_breached=True (likely this email)
+            email_hash = hash_lookup_value(cache_entry.email)
             affected_creds = (
                 db.query(Credential)
-                .filter(Credential.email_breached == True)
+                .filter(Credential.site_username_hash == email_hash)
                 .all()
             )
-            alerted_users: set = set()
             for cred in affected_creds:
-                if cred.user_id in alerted_users:
+                try:
+                    from services.breach_service import apply_email_breach_result
+                    normalized = [
+                        {
+                            "name": b.get("Name", ""),
+                            "title": b.get("Title", b.get("Name", "")),
+                            "domain": b.get("Domain", ""),
+                            "breach_date": b.get("BreachDate"),
+                            "added_date": b.get("AddedDate"),
+                            "pwn_count": b.get("PwnCount", 0),
+                            "description": b.get("Description", ""),
+                            "logo_path": b.get("LogoPath", ""),
+                            "data_classes": b.get("DataClasses", []),
+                            "is_verified": b.get("IsVerified", False),
+                            "is_sensitive": b.get("IsSensitive", False),
+                        }
+                        for b in new_raw
+                    ]
+                    apply_email_breach_result(db, cred, normalized, email_hash=email_hash, commit=False)
+                except Exception as exc:
+                    logger.error("Breach follow-up sync failed for credential %s: %s", cred.id, exc)
                     continue
-                alerted_users.add(cred.user_id)
+
                 u = db.query(User).filter(User.id == cred.user_id).first()
                 alert = BreachAlert(
                     user_id=cred.user_id,
                     credential_id=cred.id,
-                    message=f"Yeni ihlal: {', '.join(sorted(added))} ({cache_entry.email})",
+                    message=f"{cred.site_name} için yeni ihlal: {', '.join(sorted(added))} ({cache_entry.email})",
                 )
                 db.add(alert)
-                db.commit()
                 try:
                     from services.email_service import send_breach_alert
                     send_breach_alert(u.username if u else "kullanıcı", sorted(added))
                 except Exception as exc:
                     logger.error("Email send failed: %s", exc)
+            db.commit()
 
         logger.info("Breach scan complete")
     except Exception as exc:

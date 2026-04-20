@@ -17,6 +17,7 @@ const ACTION_COLORS = {
   LOGIN: 'success', LOGIN_FAILED: 'error', LOGOUT: 'default',
   '2FA_ENABLED': 'info', CREDENTIAL_ADD: 'primary', CREDENTIAL_UPDATE: 'warning',
   CREDENTIAL_DELETE: 'error', BREACH_CHECK: 'info', EXPORT: 'default',
+  LOGIN_RECOVERY_CODE: 'warning', RECOVERY_CODES_REGENERATED: 'info',
   AUDIT_CLEARED: 'error',
 }
 
@@ -24,6 +25,7 @@ const ACTION_DOT_COLORS = {
   LOGIN: 'success', LOGIN_FAILED: 'error', LOGOUT: 'grey',
   '2FA_ENABLED': 'info', CREDENTIAL_ADD: 'primary', CREDENTIAL_UPDATE: 'warning',
   CREDENTIAL_DELETE: 'error', BREACH_CHECK: 'info', EXPORT: 'grey',
+  LOGIN_RECOVERY_CODE: 'warning', RECOVERY_CODES_REGENERATED: 'info',
   AUDIT_CLEARED: 'error',
 }
 

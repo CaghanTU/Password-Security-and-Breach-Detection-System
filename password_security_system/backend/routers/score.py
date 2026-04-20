@@ -3,11 +3,13 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 import services.auth_service as auth_service
+import services.ai_advisor_service as ai_advisor_service
 import services.scoring_service as scoring_service
 import services.password_service as password_service
 import services.report_service as report_service
+import services.strength_service as strength_service
 from database import get_db, Credential
-from models.schemas import ScoreHistoryEntry, ScoreResponse, CategoryStats
+from models.schemas import AIAdvisorResponse, AIInsightsResponse, CategoryStats, HealthTrendResponse, ScoreHistoryEntry, ScoreResponse
 
 router = APIRouter(prefix="/score", tags=["score"])
 
@@ -28,8 +30,8 @@ def get_score(
     token: str = Cookie(default=None),
     db: Session = Depends(get_db),
 ):
-    user, _ = _get_user(token, db)
-    return scoring_service.calculate_score(db, user.id)
+    user, key = _get_user(token, db)
+    return scoring_service.calculate_score(db, user.id, key)
 
 
 @router.get("/history", response_model=list[ScoreHistoryEntry])
@@ -46,8 +48,9 @@ def get_score_by_category(
     token: str = Cookie(default=None),
     db: Session = Depends(get_db),
 ):
-    user, _ = _get_user(token, db)
+    user, key = _get_user(token, db)
     creds = db.query(Credential).filter(Credential.user_id == user.id).all()
+    strength_service.sync_credential_strength_labels(db, creds, key)
     result = []
     for cat in CATEGORIES:
         cat_creds = [c for c in creds if c.category == cat]
@@ -61,15 +64,46 @@ def get_score_by_category(
     return result
 
 
+@router.get("/health-trend", response_model=HealthTrendResponse)
+def get_health_trend(
+    token: str = Cookie(default=None),
+    db: Session = Depends(get_db),
+):
+    user, _ = _get_user(token, db)
+    return scoring_service.get_health_trend(db, user.id)
+
+
+@router.get("/advisor", response_model=AIAdvisorResponse)
+def get_ai_advisor(
+    token: str = Cookie(default=None),
+    db: Session = Depends(get_db),
+):
+    user, key = _get_user(token, db)
+    return ai_advisor_service.generate_advisor(db, user.id, key)
+
+
+@router.get("/insights", response_model=AIInsightsResponse)
+def get_ai_insights(
+    token: str = Cookie(default=None),
+    db: Session = Depends(get_db),
+):
+    user, key = _get_user(token, db)
+    return ai_advisor_service.generate_insights(db, user.id, key)
+
+
 @router.get("/report")
 def download_report(
     token: str = Cookie(default=None),
     db: Session = Depends(get_db),
 ):
     user, key = _get_user(token, db)
-    score_data = scoring_service.calculate_score(db, user.id)
+    score_data = scoring_service.calculate_score(db, user.id, key)
     credentials = password_service.get_credentials(db, user.id, key)
-    pdf_bytes = report_service.generate_pdf(user.username, score_data, credentials)
+    try:
+        ai_insights = ai_advisor_service.generate_insights(db, user.id, key)
+    except Exception:
+        ai_insights = None
+    pdf_bytes = report_service.generate_pdf(user.username, score_data, credentials, ai_insights=ai_insights)
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",

@@ -6,20 +6,20 @@ import {
 } from '@mui/material'
 
 const DATA_CLASS_META = {
-  'Passwords':             { color: '#dc3545', icon: '🔑' },
-  'Email addresses':       { color: '#fd7e14', icon: '✉️' },
-  'Usernames':             { color: '#ffc107', icon: '👤' },
-  'IP addresses':          { color: '#6f42c1', icon: '🌐' },
-  'Phone numbers':         { color: '#0dcaf0', icon: '📱' },
-  'Dates of birth':        { color: '#20c997', icon: '🎂' },
-  'Names':                 { color: '#6c757d', icon: '📝' },
-  'Geographic locations':  { color: '#198754', icon: '📍' },
-  'Social media profiles': { color: '#0d6efd', icon: '💬' },
-  'Credit cards':          { color: '#dc3545', icon: '💳' },
+  'Passwords':             { color: '#dc3545', icon: 'PW' },
+  'Email addresses':       { color: '#fd7e14', icon: 'MAIL' },
+  'Usernames':             { color: '#ffc107', icon: 'ID' },
+  'IP addresses':          { color: '#6f42c1', icon: 'IP' },
+  'Phone numbers':         { color: '#0dcaf0', icon: 'TEL' },
+  'Dates of birth':        { color: '#20c997', icon: 'DOB' },
+  'Names':                 { color: '#6c757d', icon: 'AD' },
+  'Geographic locations':  { color: '#198754', icon: 'GEO' },
+  'Social media profiles': { color: '#0d6efd', icon: 'SOS' },
+  'Credit cards':          { color: '#dc3545', icon: 'CARD' },
 }
 
 function DataTag({ label }) {
-  const meta = DATA_CLASS_META[label] || { color: '#6c757d', icon: '📄' }
+  const meta = DATA_CLASS_META[label] || { color: '#6c757d', icon: 'VERI' }
   return (
     <Box
       component="span"
@@ -66,8 +66,8 @@ function BreachCard({ b, defaultOpen }) {
         <Box sx={{ width: 48, height: 48, borderRadius: 1, bgcolor: 'action.hover', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {logoUrl
             ? <Box component="img" src={logoUrl} alt={b.title} sx={{ width: 40, height: 40, objectFit: 'contain' }}
-                onError={e => { e.target.style.display = 'none'; e.target.parentNode.textContent = '🔓' }} />
-            : <Typography sx={{ fontSize: '1.4rem' }}>🔓</Typography>
+                onError={e => { e.target.style.display = 'none'; e.target.parentNode.textContent = 'B'; }} />
+            : <Typography sx={{ fontSize: '1rem', fontWeight: 800 }}>B</Typography>
           }
         </Box>
 
@@ -102,7 +102,7 @@ function BreachCard({ b, defaultOpen }) {
           )}
         </Box>
 
-        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>{open ? '▲' : '▼'}</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>{open ? 'Kapat' : 'Aç'}</Typography>
       </Box>
 
       {/* Expanded detail */}
@@ -125,9 +125,9 @@ function BreachCard({ b, defaultOpen }) {
           )}
 
           <Stack direction="row" flexWrap="wrap" spacing={2} mt={2}>
-            {b.domain && <Typography variant="caption" color="text.secondary">🌐 {b.domain}</Typography>}
-            {b.breach_date && <Typography variant="caption" color="text.secondary">📅 {dateStr}</Typography>}
-            {b.pwn_count > 0 && <Typography variant="caption" color="text.secondary">👥 {b.pwn_count.toLocaleString()} hesap etkilendi</Typography>}
+            {b.domain && <Typography variant="caption" color="text.secondary">Alan adı: {b.domain}</Typography>}
+            {b.breach_date && <Typography variant="caption" color="text.secondary">Tarih: {dateStr}</Typography>}
+            {b.pwn_count > 0 && <Typography variant="caption" color="text.secondary">{b.pwn_count.toLocaleString()} hesap etkilendi</Typography>}
           </Stack>
         </Box>
       )}
@@ -209,7 +209,7 @@ export default function BreachTab() {
         <Grid size={{ xs: 12, md: 7 }}>
           <Card>
             <CardContent>
-              <Typography variant="h6" mb={2}>✉️ E-posta İhlal Kontrolü</Typography>
+              <Typography variant="h6" mb={2}>E-posta ihlal kontrolü</Typography>
               <Stack direction="row" spacing={1} component="form" onSubmit={checkEmail}>
                 <TextField fullWidth type="email" required placeholder="ornek@email.com"
                   value={email} onChange={e => setEmail(e.target.value)} size="small" />
@@ -227,7 +227,7 @@ export default function BreachTab() {
           <Card>
             <CardContent>
               <Typography variant="h6" mb={2}>
-                🔑 Şifre Kontrolü{' '}
+                Şifre kontrolü{' '}
                 <Typography component="span" variant="body2" color="text.secondary">(k-anonimlik)</Typography>
               </Typography>
               <Stack direction="row" spacing={1} component="form" onSubmit={checkPassword}>
@@ -241,8 +241,8 @@ export default function BreachTab() {
               {pwResult && (
                 <Alert severity={pwResult.pwned ? 'error' : 'success'} sx={{ mt: 2 }}>
                   {pwResult.pwned
-                    ? <>⚠️ Bu şifre <strong>{pwResult.count.toLocaleString()}</strong> kez ihlal edilmiş!</>
-                    : '✅ Bilinen ihlallerde bu şifre bulunamadı.'}
+                    ? <>Bu şifre <strong>{pwResult.count.toLocaleString()}</strong> kez ihlal edilmiş.</>
+                    : 'Bilinen ihlallerde bu şifre bulunamadı.'}
                 </Alert>
               )}
             </CardContent>

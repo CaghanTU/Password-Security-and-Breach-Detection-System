@@ -14,6 +14,7 @@ class LoginRequest(BaseModel):
     username: str
     master_password: str
     totp_code: Optional[str] = None
+    recovery_code: Optional[str] = None
 
 
 class TwoFASetupResponse(BaseModel):
@@ -27,6 +28,19 @@ class TwoFAVerifyRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class RecoveryCodesResponse(BaseModel):
+    codes: List[str]
+    total: int
+
+
+class RecoveryCodesSummaryResponse(BaseModel):
+    has_codes: bool
+    total: int
+    used: int
+    remaining: int
+    generated_at: Optional[datetime]
 
 
 # ── Credentials ───────────────────────────────────────────────────────
@@ -183,11 +197,76 @@ class GenerateResponse(BaseModel):
     strength_label: str
 
 
+class AIGenerateRequest(BaseModel):
+    length: int = 16
+    use_upper: bool = True
+    use_lower: bool = True
+    use_digits: bool = True
+    use_symbols: bool = True
+    min_digits: int = 0
+    min_symbols: int = 0
+    prefix: Optional[str] = ""
+    suffix: Optional[str] = ""
+    custom_chars: Optional[str] = ""
+    account_label: Optional[str] = ""
+    purpose: Optional[str] = ""
+    memorable_words: Optional[List[str]] = []
+    style: str = "password"  # password | passphrase
+    count: int = 3
+
+    @field_validator("style")
+    @classmethod
+    def validate_style(cls, v: str) -> str:
+        allowed = {"password", "passphrase"}
+        if v not in allowed:
+            raise ValueError(f"style must be one of {allowed}")
+        return v
+
+    @field_validator("count")
+    @classmethod
+    def validate_count(cls, v: int) -> int:
+        if v < 1 or v > 5:
+            raise ValueError("count must be between 1 and 5")
+        return v
+
+
+class AIGeneratedSuggestion(BaseModel):
+    password: str
+    entropy_bits: float
+    strength_label: str
+    rationale: str
+
+
+class AIGenerateResponse(BaseModel):
+    model: str
+    suggestions: List[AIGeneratedSuggestion]
+
+
 # ── Score ─────────────────────────────────────────────────────────────
+
+class RiskExplanation(BaseModel):
+    key: str
+    title: str
+    severity: str
+    count: int
+    ratio: float
+    weight: float
+    impact_points: int
+    explanation: str
+    recommendation: str
+
+
+class SuggestedAction(BaseModel):
+    key: str
+    label: str
+    estimated_score_gain: int
+    reason: str
 
 class ScoreResponse(BaseModel):
     score: int
     breakdown: dict
+    explanations: List[RiskExplanation]
+    suggested_actions: List[SuggestedAction]
 
 
 class ScoreHistoryEntry(BaseModel):
@@ -204,6 +283,91 @@ class CategoryStats(BaseModel):
     weak: int
     breached: int
     stale: int
+
+
+class HealthTrendPoint(BaseModel):
+    id: int
+    score: int
+    weak_count: int
+    medium_count: int
+    reused_count: int
+    breach_any_count: int
+    stale_count: int
+    totp_enabled_count: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class HealthTrendSummary(BaseModel):
+    trend_direction: str
+    score_delta: int
+    weak_delta: int
+    breach_delta: int
+    stale_delta: int
+    reused_delta: int
+
+
+class HealthTrendResponse(BaseModel):
+    points: List[HealthTrendPoint]
+    summary: HealthTrendSummary
+
+
+# ── AI Advisor ────────────────────────────────────────────────────────
+
+class AIAdvisorPriority(BaseModel):
+    title: str
+    detail: str
+    impact: str
+
+
+class AIAdvisorResponse(BaseModel):
+    source: str
+    model: str
+    generated_at: datetime
+    headline: str
+    summary: str
+    risk_posture: str
+    why_now: str
+    next_step: str
+    priorities: List[AIAdvisorPriority]
+
+
+class AIPlanStep(BaseModel):
+    window: str
+    title: str
+    detail: str
+
+
+class AIWhatIfScenario(BaseModel):
+    title: str
+    effect: str
+    detail: str
+
+
+class AIWeeklySummary(BaseModel):
+    headline: str
+    summary: str
+    watch_items: List[str]
+
+
+class AIAccountReview(BaseModel):
+    credential_id: int
+    site_name: str
+    status_label: str
+    summary: str
+    recommendation: str
+
+
+class AIInsightsResponse(BaseModel):
+    source: str
+    model: str
+    generated_at: datetime
+    briefing: AIAdvisorResponse
+    plan_48h: List[AIPlanStep]
+    what_if_scenarios: List[AIWhatIfScenario]
+    weekly_summary: AIWeeklySummary
+    account_reviews: List[AIAccountReview]
 
 
 # ── Export / Import ───────────────────────────────────────────────────
@@ -242,3 +406,50 @@ class AuditLogResponse(BaseModel):
     page: int
     per_page: int
     items: List[AuditEntry]
+
+
+# ── Action Center ──────────────────────────────────────────────────────
+
+class ActionSummary(BaseModel):
+    current_score: int
+    open_actions: int
+    critical_actions: int
+    high_actions: int
+    medium_actions: int
+    recovery_codes_remaining: int
+    unresolved_breach_cases: int
+    resolved_breach_cases: int
+
+
+class ActionItem(BaseModel):
+    id: str
+    kind: str
+    priority: str
+    status: str
+    title: str
+    description: str
+    action_label: str
+    estimated_score_gain: int
+    ai_reason: Optional[str] = None
+    credential_id: Optional[int] = None
+    credential_ids: Optional[List[int]] = None
+    site_name: Optional[str] = None
+
+
+class BreachFollowUpEntry(BaseModel):
+    id: int
+    credential_id: int
+    site_name: Optional[str]
+    status: str
+    breach_names: List[str]
+    latest_breach_date: Optional[datetime]
+    created_at: datetime
+    updated_at: datetime
+    resolved_at: Optional[datetime]
+
+
+class ActionCenterResponse(BaseModel):
+    summary: ActionSummary
+    actions: List[ActionItem]
+    open_follow_up: List[BreachFollowUpEntry]
+    recently_resolved: List[BreachFollowUpEntry]

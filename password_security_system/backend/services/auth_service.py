@@ -1,5 +1,7 @@
 import base64
+import hashlib
 import io
+import secrets
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional
@@ -11,10 +13,11 @@ from sqlalchemy.orm import Session
 
 import services.audit_service as audit_service
 from config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET
-from database import User
+from database import RecoveryCode, User
 from services.crypto_service import (
     derive_key,
     generate_kdf_salt,
+    normalize_recovery_code,
     hash_password,
     verify_password,
 )
@@ -25,12 +28,95 @@ KEY_STORE: dict[tuple[int, str], bytes] = {}
 
 MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 15
+RECOVERY_CODE_COUNT = 8
+RECOVERY_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 
 def _is_locked_out(user: User) -> bool:
     if user.lockout_until and datetime.utcnow() < user.lockout_until:
         return True
     return False
+
+
+def _hash_recovery_code(code: str) -> str:
+    normalized = normalize_recovery_code(code)
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _build_recovery_code() -> str:
+    raw = "".join(secrets.choice(RECOVERY_CODE_ALPHABET) for _ in range(8))
+    return f"{raw[:4]}-{raw[4:]}"
+
+
+def _mark_failed_attempt(db: Session, user: User, ip: str, reason: str) -> None:
+    user.failed_attempts = (user.failed_attempts or 0) + 1
+    if user.failed_attempts >= MAX_FAILED_ATTEMPTS:
+        user.lockout_until = datetime.utcnow() + timedelta(minutes=LOCKOUT_MINUTES)
+    db.commit()
+    audit_service.log(db, user.id, reason, ip)
+
+
+def consume_recovery_code(db: Session, user: User, recovery_code: str) -> bool:
+    normalized = normalize_recovery_code(recovery_code)
+    if not normalized:
+        return False
+
+    code_hash = _hash_recovery_code(normalized)
+    entry = (
+        db.query(RecoveryCode)
+        .filter(
+            RecoveryCode.user_id == user.id,
+            RecoveryCode.code_hash == code_hash,
+            RecoveryCode.is_used == False,
+        )
+        .first()
+    )
+    if not entry:
+        return False
+
+    entry.is_used = True
+    entry.used_at = datetime.utcnow()
+    db.commit()
+    return True
+
+
+def regenerate_recovery_codes(db: Session, user: User) -> list[str]:
+    db.query(RecoveryCode).filter(RecoveryCode.user_id == user.id).delete()
+
+    codes: list[str] = []
+    for _ in range(RECOVERY_CODE_COUNT):
+        code = _build_recovery_code()
+        codes.append(code)
+        db.add(
+            RecoveryCode(
+                user_id=user.id,
+                code_hash=_hash_recovery_code(code),
+            )
+        )
+
+    db.commit()
+    audit_service.log(db, user.id, "RECOVERY_CODES_REGENERATED", None)
+    return codes
+
+
+def get_recovery_codes_summary(db: Session, user: User) -> dict:
+    items = (
+        db.query(RecoveryCode)
+        .filter(RecoveryCode.user_id == user.id)
+        .order_by(RecoveryCode.created_at.desc())
+        .all()
+    )
+    total = len(items)
+    used = sum(1 for item in items if item.is_used)
+    remaining = total - used
+    latest = items[0].created_at if items else None
+    return {
+        "has_codes": total > 0,
+        "total": total,
+        "used": used,
+        "remaining": remaining,
+        "generated_at": latest,
+    }
 
 
 def register(db: Session, username: str, master_password: str) -> tuple[User, str, str]:
@@ -73,6 +159,7 @@ def login(
     username: str,
     master_password: str,
     totp_code: Optional[str],
+    recovery_code: Optional[str],
     ip: str,
 ) -> str:
     """
@@ -93,22 +180,24 @@ def login(
         raise PermissionError(f"Account locked. Try again in {remaining} minute(s).")
 
     if not verify_password(user.password_hash, master_password):
-        user.failed_attempts = (user.failed_attempts or 0) + 1
-        if user.failed_attempts >= MAX_FAILED_ATTEMPTS:
-            user.lockout_until = datetime.utcnow() + timedelta(minutes=LOCKOUT_MINUTES)
-        db.commit()
-        audit_service.log(db, user.id, "LOGIN_FAILED", ip)
+        _mark_failed_attempt(db, user, ip, "LOGIN_FAILED")
         raise ValueError("Invalid credentials")
 
     # 2FA check — mandatory for all users
     if not user.totp_secret:
         raise ValueError("2FA is not set up. Please register again.")
-    if not totp_code:
-        raise ValueError("2FA code required")
-    if not pyotp.TOTP(user.totp_secret).verify(totp_code):
-        user.failed_attempts = (user.failed_attempts or 0) + 1
-        db.commit()
-        audit_service.log(db, user.id, "LOGIN_FAILED", ip)
+
+    used_recovery_code = False
+    if totp_code and pyotp.TOTP(user.totp_secret).verify(totp_code):
+        pass
+    elif recovery_code and consume_recovery_code(db, user, recovery_code):
+        used_recovery_code = True
+    else:
+        if not totp_code and not recovery_code:
+            raise ValueError("2FA code or recovery code required")
+        _mark_failed_attempt(db, user, ip, "LOGIN_FAILED")
+        if recovery_code:
+            raise ValueError("Invalid recovery code")
         raise ValueError("Invalid 2FA code")
 
     # Reset lockout on successful login
@@ -130,6 +219,8 @@ def login(
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
     audit_service.log(db, user.id, "LOGIN", ip)
+    if used_recovery_code:
+        audit_service.log(db, user.id, "LOGIN_RECOVERY_CODE", ip)
     return token
 
 

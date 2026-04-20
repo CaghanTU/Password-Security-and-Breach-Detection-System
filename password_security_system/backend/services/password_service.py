@@ -4,26 +4,17 @@ import re
 
 from rapidfuzz import fuzz
 from sqlalchemy.orm import Session
-from zxcvbn import zxcvbn
 
 import services.audit_service as audit_service
 from database import Credential, PasswordHistory
-from services.crypto_service import decrypt, encrypt, hash_for_reuse
+from services.crypto_service import decrypt, encrypt, hash_for_reuse, hash_lookup_value
+from services.strength_service import calculate_strength_label
 
 _EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 
 STALE_DAYS = 90
 LEVENSHTEIN_THRESHOLD = 80   # ≥80 → too similar
 MAX_HISTORY = 5
-
-
-def _strength_label(score: int) -> str:
-    """Map zxcvbn score (0-4) to human-readable label."""
-    if score <= 1:
-        return "weak"
-    elif score == 2:
-        return "medium"
-    return "strong"
 
 
 def _check_too_similar(
@@ -123,8 +114,7 @@ def add_credential(
     if _similar_to_existing(password, existing_plaintexts):
         return {"error": "too_similar", "message": "New password is too similar to an existing one."}
 
-    zx = zxcvbn(password)
-    strength = _strength_label(zx["score"])
+    strength = calculate_strength_label(password, site_name, site_username)
 
     # Encrypt username and password
     enc_username_ct, enc_username_iv, enc_username_tag = encrypt(site_username, key)
@@ -138,6 +128,7 @@ def add_credential(
         iv=iv,
         tag=tag,
         reuse_hash=reuse_h,
+        site_username_hash=hash_lookup_value(site_username) or None,
         strength_label=strength,
         category=category,
         is_stale=False,
@@ -166,10 +157,7 @@ def add_credential(
     if _EMAIL_RE.match(site_username):
         try:
             import services.breach_service as breach_service
-            echeck = breach_service.check_email(db, site_username, user_id)
-            cred.email_breached = echeck["breached"]
-            cred.email_breach_count = len(echeck["breaches"])
-            db.commit()
+            breach_service.check_email(db, site_username, user_id)
             db.refresh(cred)
         except Exception:
             pass  # best-effort
@@ -197,6 +185,8 @@ def get_credentials(
     creds = query.all()
 
     result = []
+    touched_hashes = False
+    touched_strengths = False
     for cred in creds:
         # Refresh staleness flag
         stale = _is_stale(cred)
@@ -207,16 +197,25 @@ def get_credentials(
         try:
             password = decrypt(cred.ciphertext, cred.iv, cred.tag, key)
             username = _decode_username(cred.site_username, key)
+            username_hash = hash_lookup_value(username) or None
+            if cred.site_username_hash != username_hash:
+                cred.site_username_hash = username_hash
+                touched_hashes = True
+            strength_label = calculate_strength_label(password, cred.site_name, username)
+            if cred.strength_label != strength_label:
+                cred.strength_label = strength_label
+                touched_strengths = True
         except Exception:
             password = "[decryption error]"
             username = "[decryption error]"
+            strength_label = cred.strength_label
 
         result.append({
             "id": cred.id,
             "site_name": cred.site_name,
             "site_username": username,
             "password": password,
-            "strength_label": cred.strength_label,
+            "strength_label": strength_label,
             "is_breached": cred.is_breached,
             "breach_count": getattr(cred, "breach_count", 0) or 0,
             "email_breached": getattr(cred, "email_breached", False) or False,
@@ -227,6 +226,8 @@ def get_credentials(
             "created_at": cred.created_at,
             "updated_at": cred.updated_at,
         })
+    if touched_hashes or touched_strengths:
+        db.commit()
     return result
 
 
@@ -253,6 +254,7 @@ def update_credential(
     if site_username:
         ct_u, iv_u, tag_u = encrypt(site_username, key)
         cred.site_username = f"{ct_u}|{iv_u}|{tag_u}"
+        cred.site_username_hash = hash_lookup_value(site_username) or None
 
     if password:
         new_hash = hash_for_reuse(password)
@@ -310,22 +312,59 @@ def update_credential(
 
         # Encrypt new password
         ct, iv, tag = encrypt(password, key)
-        zx = zxcvbn(password)
         cred.ciphertext = ct
         cred.iv = iv
         cred.tag = tag
         cred.reuse_hash = new_hash
-        cred.strength_label = _strength_label(zx["score"])
         cred.is_stale = False
         cred.is_breached = False
-        cred.breach_date_status = None
 
     if category:
         cred.category = category
 
+    current_username = site_username
+    if current_username is None:
+        try:
+            current_username = _decode_username(cred.site_username, key)
+        except Exception:
+            current_username = ""
+
+    try:
+        current_password = password if password is not None else decrypt(cred.ciphertext, cred.iv, cred.tag, key)
+        cred.strength_label = calculate_strength_label(current_password, cred.site_name, current_username)
+    except Exception:
+        pass
+
+    cred.site_username_hash = hash_lookup_value(current_username) or None
     cred.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(cred)
+
+    if password:
+        try:
+            import services.breach_service as breach_service
+            bcheck = breach_service.check_password(password)
+            cred.is_breached = bcheck["pwned"]
+            cred.breach_count = bcheck["count"]
+            db.commit()
+            db.refresh(cred)
+        except Exception:
+            pass
+
+    try:
+        import services.breach_service as breach_service
+        if _EMAIL_RE.match(current_username):
+            breach_service.check_email(db, current_username, user_id)
+        else:
+            breach_service.apply_email_breach_result(
+                db,
+                cred,
+                [],
+                email_hash=cred.site_username_hash,
+            )
+        db.refresh(cred)
+    except Exception:
+        pass
 
     audit_service.log(db, user_id, "CREDENTIAL_UPDATE", ip)
     return {"credential": cred}

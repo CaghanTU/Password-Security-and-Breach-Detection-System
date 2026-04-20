@@ -94,3 +94,20 @@ def hash_for_reuse(password: str) -> str:
     Only used for comparison within the same user's vault — never cross-user.
     """
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+
+def normalize_lookup_value(value: str) -> str:
+    """Normalize usernames/emails for stable lookups without storing plaintext."""
+    return (value or "").strip().lower()
+
+
+def hash_lookup_value(value: str) -> str:
+    normalized = normalize_lookup_value(value)
+    if not normalized:
+        return ""
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def normalize_recovery_code(code: str) -> str:
+    """Accept user-entered recovery codes with spaces/dashes and normalize them."""
+    return "".join(ch for ch in (code or "").upper() if ch.isalnum())

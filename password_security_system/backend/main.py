@@ -12,7 +12,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from database import create_tables
-from routers import auth, passwords, breach, generator, score, export, audit
+from routers import actions, auth, passwords, breach, generator, score, export, audit
 from routers import alerts
 from config import JWT_SECRET
 
@@ -30,6 +30,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:8080", "http://127.0.0.1:8080",
+        "http://localhost:5173", "http://127.0.0.1:5173",
         "http://localhost:5174", "http://127.0.0.1:5174",
     ],
     allow_credentials=True,
@@ -45,6 +46,7 @@ app.include_router(score.router)
 app.include_router(export.router)
 app.include_router(audit.router)
 app.include_router(alerts.router)
+app.include_router(actions.router)
 
 frontend_dir = os.path.join(os.path.dirname(__file__), "..", "frontend")
 if os.path.isdir(frontend_dir):

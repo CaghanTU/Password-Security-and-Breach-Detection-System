@@ -6,6 +6,8 @@ from database import get_db
 from models.schemas import (
     LoginRequest,
     MessageResponse,
+    RecoveryCodesResponse,
+    RecoveryCodesSummaryResponse,
     RegisterRequest,
     TwoFASetupResponse,
     TwoFAVerifyRequest,
@@ -40,7 +42,7 @@ def login(
     ip = _get_client_ip(request)
     try:
         token = auth_service.login(
-            db, body.username, body.master_password, body.totp_code, ip
+            db, body.username, body.master_password, body.totp_code, body.recovery_code, ip
         )
     except PermissionError as exc:
         raise HTTPException(status_code=429, detail=str(exc))
@@ -113,3 +115,32 @@ def verify_2fa(
     if not auth_service.verify_2fa(user, body.code):
         raise HTTPException(status_code=400, detail="Invalid 2FA code")
     return {"message": "2FA code is valid"}
+
+
+@router.get("/2fa/recovery-codes", response_model=RecoveryCodesSummaryResponse)
+def recovery_codes_summary(
+    token: str = Cookie(default=None),
+    db: Session = Depends(get_db),
+):
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        user, _ = auth_service.get_current_user_and_key(db, token)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    return auth_service.get_recovery_codes_summary(db, user)
+
+
+@router.post("/2fa/recovery-codes/regenerate", response_model=RecoveryCodesResponse)
+def regenerate_recovery_codes(
+    token: str = Cookie(default=None),
+    db: Session = Depends(get_db),
+):
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        user, _ = auth_service.get_current_user_and_key(db, token)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    codes = auth_service.regenerate_recovery_codes(db, user)
+    return {"codes": codes, "total": len(codes)}

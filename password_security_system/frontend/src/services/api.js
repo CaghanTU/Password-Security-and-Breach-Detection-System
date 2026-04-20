@@ -26,8 +26,11 @@ export const api = {
   register: (username, master_password) =>
     request('/auth/register', { method: 'POST', body: JSON.stringify({ username, master_password }) }),
 
-  login: (username, master_password, totp_code) =>
-    request('/auth/login', { method: 'POST', body: JSON.stringify({ username, master_password, totp_code }) }),
+  login: (username, master_password, totp_code, recovery_code) =>
+    request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, master_password, totp_code, recovery_code }),
+    }),
 
   logout: () =>
     request('/auth/logout', { method: 'POST' }),
@@ -37,6 +40,12 @@ export const api = {
 
   verify2fa: (code) =>
     request('/auth/2fa/verify', { method: 'POST', body: JSON.stringify({ code }) }),
+
+  getRecoveryCodesSummary: () =>
+    request('/auth/2fa/recovery-codes'),
+
+  regenerateRecoveryCodes: () =>
+    request('/auth/2fa/recovery-codes/regenerate', { method: 'POST' }),
 
   // ── Passwords ───────────────────────────────────────────────────────
   getPasswords: (category) =>
@@ -89,6 +98,9 @@ export const api = {
   getScore: () => request('/score'),
   getScoreHistory: () => request('/score/history'),
   getScoreByCategory: () => request('/score/by-category'),
+  getHealthTrend: () => request('/score/health-trend'),
+  getAIAdvisor: () => request('/score/advisor'),
+  getAIInsights: () => request('/score/insights'),
 
   downloadReport: async () => {
     const res = await fetch('/score/report', { credentials: 'include' })
@@ -128,4 +140,7 @@ export const api = {
     const qs = params.toString() ? '?' + params.toString() : ''
     return request(`/audit${qs}`, { method: 'DELETE' })
   },
+
+  // ── Action Center ───────────────────────────────────────────────────
+  getActionCenter: () => request('/actions'),
 }
