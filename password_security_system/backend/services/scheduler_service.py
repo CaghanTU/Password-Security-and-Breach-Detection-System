@@ -116,12 +116,12 @@ def run_breach_scan() -> None:
                 alert = BreachAlert(
                     user_id=cred.user_id,
                     credential_id=cred.id,
-                    message=f"{cred.site_name} için yeni ihlal: {', '.join(sorted(added))} ({cache_entry.email})",
+                    message=f"New breach for {cred.site_name}: {', '.join(sorted(added))} ({cache_entry.email})",
                 )
                 db.add(alert)
                 try:
                     from services.email_service import send_breach_alert
-                    send_breach_alert(u.username if u else "kullanıcı", sorted(added))
+                    send_breach_alert(u.username if u else "user", sorted(added))
                 except Exception as exc:
                     logger.error("Email send failed: %s", exc)
             db.commit()

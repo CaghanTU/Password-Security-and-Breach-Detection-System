@@ -55,8 +55,8 @@ def login(
         key="token",
         value=token,
         httponly=True,
-        secure=is_prod,       # dev'de False: localhost HTTP üzerinde çalışır
-        samesite="lax",       # strict cross-site sorun çıkarabilir
+        secure=is_prod,       # false in dev so localhost over HTTP keeps working
+        samesite="lax",       # strict can cause cross-site issues
         max_age=auth_service.JWT_EXPIRE_MINUTES * 60,
     )
     return {"message": "Login successful"}

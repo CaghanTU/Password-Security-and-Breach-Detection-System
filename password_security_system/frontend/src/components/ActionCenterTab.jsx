@@ -28,21 +28,21 @@ function FollowUpRow({ item, resolved = false }) {
   return (
     <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} flexWrap="wrap">
-        <Typography fontWeight={700}>{item.site_name || 'Kayıt'}</Typography>
+        <Typography fontWeight={700}>{item.site_name || 'Record'}</Typography>
         <Chip
           size="small"
           color={resolved ? 'success' : 'error'}
-          label={resolved ? 'çözüldü' : 'açık takip'}
+          label={resolved ? 'resolved' : 'open follow-up'}
         />
       </Stack>
       <Typography variant="body2" color="text.secondary" mt={1}>
         {item.breach_names?.length
-          ? `İlgili ihlaller: ${item.breach_names.join(', ')}`
-          : 'İlgili ihlal bilgisi takip ediliyor.'}
+          ? `Related breaches: ${item.breach_names.join(', ')}`
+          : 'Related breach information is being tracked.'}
       </Typography>
       <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-        {resolved ? 'Kapanış' : 'Son güncelleme'}:{' '}
-        {new Date((resolved ? item.resolved_at : item.updated_at) || item.created_at).toLocaleString('tr-TR')}
+        {resolved ? 'Closed' : 'Last update'}:{' '}
+        {new Date((resolved ? item.resolved_at : item.updated_at) || item.created_at).toLocaleString('en-US')}
       </Typography>
     </Box>
   )
@@ -122,8 +122,8 @@ export default function ActionCenterTab({ onNavigateTab }) {
     <Box>
       <Box sx={{ mb: 3 }}>
         <AIAdvisorCard
-          title="Aksiyon Özeti"
-          eyebrow="Akıllı Yorum"
+          title="Action Summary"
+          eyebrow="Smart Commentary"
           data={aiInsights?.briefing ?? null}
           loading={aiLoading}
           error={aiError}
@@ -135,9 +135,9 @@ export default function ActionCenterTab({ onNavigateTab }) {
         <Card sx={{ mb: 3 }}>
           <CardContent sx={{ p: 3 }}>
             <Typography variant="overline" sx={{ color: 'secondary.light', letterSpacing: '0.1em' }}>
-              48 Saat
+              48 Hours
             </Typography>
-            <Typography variant="h6" sx={{ mb: 2 }}>48 Saatlik Müdahale Planı</Typography>
+            <Typography variant="h6" sx={{ mb: 2 }}>48-Hour Intervention Plan</Typography>
             <Grid container spacing={1.5}>
               {aiInsights.plan_48h.map((item, index) => (
                 <Grid key={`${item.window}-${index}`} size={{ xs: 12, md: 4 }}>
@@ -169,30 +169,30 @@ export default function ActionCenterTab({ onNavigateTab }) {
 
       <Grid container spacing={2} mb={3}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <SummaryCard label="Anlık Skor" value={summary.current_score} helper="Risk skorun" color="primary.main" />
+          <SummaryCard label="Current Score" value={summary.current_score} helper="Your risk score" color="primary.main" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <SummaryCard label="Açık Aksiyon" value={summary.open_actions} helper="Önceliklendirilmiş iş listesi" color="warning.main" />
+          <SummaryCard label="Open Actions" value={summary.open_actions} helper="Prioritized work list" color="warning.main" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <SummaryCard label="Açık Breach Takibi" value={summary.unresolved_breach_cases} helper="Henüz kapanmamış vakalar" color="error.main" />
+          <SummaryCard label="Open Breach Follow-Up" value={summary.unresolved_breach_cases} helper="Cases not yet closed" color="error.main" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <SummaryCard label="Recovery Code" value={summary.recovery_codes_remaining} helper="Kalan yedek kod" color="info.main" />
+          <SummaryCard label="Recovery Codes" value={summary.recovery_codes_remaining} helper="Remaining backup codes" color="info.main" />
         </Grid>
       </Grid>
 
       {actions.length === 0 ? (
         <Alert severity="success" sx={{ mb: 3 }}>
-          Öncelikli açık aksiyon görünmüyor. Düzenli taramaya devam edebilirsin.
+          No priority open actions are visible. You can continue regular scanning.
         </Alert>
       ) : (
         <Card sx={{ mb: 3 }}>
           <CardContent sx={{ p: 3 }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2} gap={1} flexWrap="wrap">
-              <Typography variant="h6">Öncelikli Aksiyonlar</Typography>
+              <Typography variant="h6">Priority Actions</Typography>
               <Typography variant="body2" color="text.secondary">
-                Kritik: {summary.critical_actions} · Yüksek: {summary.high_actions} · Orta: {summary.medium_actions}
+                Critical: {summary.critical_actions} · High: {summary.high_actions} · Medium: {summary.medium_actions}
               </Typography>
             </Stack>
             <Stack spacing={1.5}>
@@ -219,14 +219,14 @@ export default function ActionCenterTab({ onNavigateTab }) {
                           />
                         )}
                         {item.estimated_score_gain > 0 && (
-                          <Chip size="small" color="success" variant="outlined" label={`+${item.estimated_score_gain} puan potansiyel`} />
+                          <Chip size="small" color="success" variant="outlined" label={`+${item.estimated_score_gain} point potential`} />
                         )}
                       </Stack>
                       <Typography fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>{item.title}</Typography>
                       <Typography variant="body2" color="text.secondary" mt={0.5} sx={{ overflowWrap: 'anywhere' }}>{item.description}</Typography>
                       {item.ai_reason && (
                         <Typography variant="caption" color="primary.light" display="block" mt={1} sx={{ lineHeight: 1.65, overflowWrap: 'anywhere' }}>
-                          Neden şimdi: {item.ai_reason}
+                          Why now: {item.ai_reason}
                         </Typography>
                       )}
                     </Box>
@@ -250,9 +250,9 @@ export default function ActionCenterTab({ onNavigateTab }) {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" mb={2}>Breach Sonrası Takip</Typography>
+              <Typography variant="h6" mb={2}>Post-Breach Follow-Up</Typography>
               {openFollowUp.length === 0 ? (
-                <Alert severity="success">Açık breach follow-up vakası görünmüyor.</Alert>
+                <Alert severity="success">No open breach follow-up cases are visible.</Alert>
               ) : (
                 <Stack spacing={1.5}>
                   {openFollowUp.map(item => <FollowUpRow key={item.id} item={item} />)}
@@ -264,9 +264,9 @@ export default function ActionCenterTab({ onNavigateTab }) {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" mb={2}>Yakın Zamanda Kapananlar</Typography>
+              <Typography variant="h6" mb={2}>Recently Closed</Typography>
               {recentlyResolved.length === 0 ? (
-                <Alert severity="info">Henüz kapanmış breach vakası yok.</Alert>
+                <Alert severity="info">There are no closed breach cases yet.</Alert>
               ) : (
                 <Stack spacing={1.5}>
                   {recentlyResolved.map(item => <FollowUpRow key={item.id} item={item} resolved />)}

@@ -79,6 +79,6 @@ async def import_csv(
         else:
             result = import_service.auto_detect_and_import(content, filename, db, user.id, key)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Import hatası: {str(exc)}")
+        raise HTTPException(status_code=400, detail=f"Import error: {str(exc)}")
 
     return result

@@ -163,79 +163,79 @@ def _build_explanations(breakdown: dict) -> list[dict]:
         explanations.append(
             _risk_driver(
                 "breach_any",
-                "İhlalli hesaplar skoru aşağı çekiyor",
+                "Breached accounts are pulling the score down",
                 "critical",
                 breakdown["breach_any_count"],
                 breakdown["breach_any_ratio"],
                 0.25,
-                "E-posta veya parola ihlali görülen kayıtlar en ağır risk kalemlerinden biri.",
-                "Önce ihlalli kayıtların parolasını değiştirin ve mümkünse TOTP ekleyin.",
+                "Records affected by an email or password breach are one of the heaviest risk factors.",
+                "Change passwords for breached records first and add TOTP where possible.",
             )
         )
     if breakdown["weak_count"] > 0:
         explanations.append(
             _risk_driver(
                 "weak",
-                "Zayıf parolalar kolay tahmin edilebilir",
+                "Weak passwords are easy to guess",
                 "high",
                 breakdown["weak_count"],
                 breakdown["weak_ratio"],
                 0.30,
-                "Zayıf parolalar skora doğrudan yüksek ceza veriyor.",
-                "Zayıf kayıtları güçlü ve benzersiz parolalarla değiştirin.",
+                "Weak passwords apply a direct and significant penalty to the score.",
+                "Replace weak records with strong, unique passwords.",
             )
         )
     if breakdown["reused_count"] > 0:
         explanations.append(
             _risk_driver(
                 "reused",
-                "Aynı parola birden fazla yerde kullanılıyor",
+                "The same password is being used in multiple places",
                 "high",
                 breakdown["reused_count"],
                 breakdown["reused_ratio"],
                 0.20,
-                "Bir hesap sızarsa aynı parola kullanılan diğer hesaplar da etkilenir.",
-                "Tekrar kullanılan parolaları ayırın.",
+                "If one account is compromised, the others using the same password are affected too.",
+                "Split up reused passwords.",
             )
         )
     if breakdown["stale_count"] > 0:
         explanations.append(
             _risk_driver(
                 "stale",
-                "Eski parolalar yenilenmemiş",
+                "Old passwords have not been rotated",
                 "medium",
                 breakdown["stale_count"],
                 breakdown["stale_ratio"],
                 0.10,
-                "Uzun süredir değişmeyen kritik hesaplar ek risk oluşturur.",
-                "90 günü geçen kayıtları gözden geçirip döndürün.",
+                "Critical accounts that have not changed for a long time create extra risk.",
+                "Review and rotate records older than 90 days.",
             )
         )
     if breakdown["not_rotated_count"] > 0:
         explanations.append(
             _risk_driver(
                 "not_rotated",
-                "İhlal sonrası güncellenmemiş kayıtlar var",
+                "Some records were not updated after a breach",
                 "critical",
                 breakdown["not_rotated_count"],
                 breakdown["not_rotated_ratio"],
                 0.05,
-                "İhlal tarihi sonrasına taşınmayan kayıtlar hâlâ açık risk olabilir.",
-                "Bu hesapları hemen güncelleyin ve takip vakasını kapatın.",
+                "Records not updated after the breach date may still be exposed.",
+                "Update these accounts immediately and close the follow-up case.",
             )
         )
     if breakdown["totp_enabled_count"] == 0 and breakdown["total_credentials"] > 0:
         explanations.append(
             {
                 "key": "totp_bonus",
-                "title": "TOTP bonusu kullanılamıyor",
+                "title": "TOTP bonus is unavailable",
                 "severity": "medium",
                 "count": 0,
                 "ratio": breakdown["totp_ratio"],
                 "weight": 0.08,
                 "impact_points": 8,
-                "explanation": "Hiç TOTP aktif kayıt olmadığı için güvenlik bonusu alınamıyor.",
-                "recommendation": "Özellikle kritik hesaplara TOTP ekleyin.",
+                "explanation": "There are no TOTP-enabled records, so the security bonus cannot be applied.",
+                "recommendation": "Add TOTP, especially to critical accounts.",
             }
         )
 
@@ -243,14 +243,14 @@ def _build_explanations(breakdown: dict) -> list[dict]:
         explanations.append(
             {
                 "key": "healthy",
-                "title": "Belirgin risk baskısı görünmüyor",
+                "title": "No dominant risk pressure is visible",
                 "severity": "info",
                 "count": 0,
                 "ratio": 0.0,
                 "weight": 0.0,
                 "impact_points": 0,
-                "explanation": "Şu an skoru aşağı çeken büyük bir risk kalemi görünmüyor.",
-                "recommendation": "Mevcut güvenlik seviyesini koruyun ve düzenli taramaya devam edin.",
+                "explanation": "There is no major risk factor currently dragging the score down.",
+                "recommendation": "Maintain the current security level and continue regular scans.",
             }
         )
 
@@ -268,45 +268,45 @@ def _build_suggested_actions(breakdown: dict) -> list[dict]:
         suggestions.append(
             {
                 "key": "fix_breached",
-                "label": "İhlalli kayıtları düzelt",
+                "label": "Fix breached records",
                 "estimated_score_gain": max(4, round(100 * 0.25 * breakdown["breach_any_ratio"])),
-                "reason": "İhlal kalemi en ağır cezalardan birini oluşturuyor.",
+                "reason": "The breach factor carries one of the heaviest penalties.",
             }
         )
     if breakdown["weak_count"] > 0:
         suggestions.append(
             {
                 "key": "upgrade_weak",
-                "label": "Zayıf parolaları güçlendir",
+                "label": "Strengthen weak passwords",
                 "estimated_score_gain": max(3, round(100 * 0.30 * breakdown["weak_ratio"])),
-                "reason": "Zayıf parola oranı düştüğünde skor hızlı toparlanır.",
+                "reason": "The score recovers quickly when the weak-password ratio drops.",
             }
         )
     if breakdown["reused_count"] > 0:
         suggestions.append(
             {
                 "key": "remove_reuse",
-                "label": "Tekrar kullanılan parolaları ayır",
+                "label": "Separate reused passwords",
                 "estimated_score_gain": max(2, round(100 * 0.20 * breakdown["reused_ratio"])),
-                "reason": "Aynı parolayı kullanan hesapları ayırmak zincir riski azaltır.",
+                "reason": "Separating accounts that share the same password reduces chain risk.",
             }
         )
     if breakdown["stale_count"] > 0:
         suggestions.append(
             {
                 "key": "rotate_stale",
-                "label": "Eski parolaları döndür",
+                "label": "Rotate old passwords",
                 "estimated_score_gain": max(1, round(100 * 0.10 * breakdown["stale_ratio"])),
-                "reason": "Düzenli rotasyon özellikle kritik hesaplarda güvenlik duruşunu iyileştirir.",
+                "reason": "Regular rotation improves security posture, especially for critical accounts.",
             }
         )
     if breakdown["totp_enabled_count"] == 0 and breakdown["total_credentials"] > 0:
         suggestions.append(
             {
                 "key": "enable_totp",
-                "label": "TOTP ekle",
+                "label": "Add TOTP",
                 "estimated_score_gain": 8,
-                "reason": "TOTP aktif kayıtlar doğrudan pozitif bonus getirir.",
+                "reason": "TOTP-enabled records provide a direct positive bonus.",
             }
         )
 
@@ -314,9 +314,9 @@ def _build_suggested_actions(breakdown: dict) -> list[dict]:
         suggestions.append(
             {
                 "key": "maintain",
-                "label": "Mevcut seviyeyi koru",
+                "label": "Maintain the current level",
                 "estimated_score_gain": 0,
-                "reason": "Büyük açık görünmüyor; düzenli tarama ve iyi parolalarla devam edin.",
+                "reason": "No major gap is visible; continue with regular scans and strong passwords.",
             }
         )
 

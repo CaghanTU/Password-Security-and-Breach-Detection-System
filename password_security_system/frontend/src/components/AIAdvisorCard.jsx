@@ -9,24 +9,24 @@ import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import { api } from '../services/api'
 
 function toneFromRisk(text = '') {
-  const lower = text.toLocaleLowerCase('tr-TR')
-  if (lower.includes('kritik') || lower.includes('yüksek')) return 'error'
-  if (lower.includes('orta') || lower.includes('dikkat')) return 'warning'
-  if (lower.includes('iyi') || lower.includes('güçlü')) return 'success'
+  const lower = text.toLowerCase()
+  if (lower.includes('critical') || lower.includes('high')) return 'error'
+  if (lower.includes('medium') || lower.includes('attention')) return 'warning'
+  if (lower.includes('good') || lower.includes('strong')) return 'success'
   return 'info'
 }
 
 function riskLabelFromText(text = '') {
-  const lower = text.toLocaleLowerCase('tr-TR')
-  if (lower.includes('kritik') || lower.includes('yüksek')) return 'Yüksek risk'
-  if (lower.includes('orta') || lower.includes('dikkat')) return 'Orta risk'
-  if (lower.includes('iyi') || lower.includes('güçlü')) return 'Dengeli görünüm'
-  return 'İzleme'
+  const lower = text.toLowerCase()
+  if (lower.includes('critical') || lower.includes('high')) return 'High risk'
+  if (lower.includes('medium') || lower.includes('attention')) return 'Medium risk'
+  if (lower.includes('good') || lower.includes('strong')) return 'Balanced view'
+  return 'Monitoring'
 }
 
 export default function AIAdvisorCard({
-  title = 'Güvenlik Özeti',
-  eyebrow = 'Akıllı Özet',
+  title = 'Security Summary',
+  eyebrow = 'Smart Summary',
   data: externalData = null,
   loading: externalLoading = false,
   error: externalError = '',
@@ -85,7 +85,7 @@ export default function AIAdvisorCard({
             disabled={loading || Boolean(externalLoading)}
             sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' }, flexShrink: 0 }}
           >
-            Yenile
+            Refresh
           </Button>
         </Stack>
 
@@ -94,7 +94,7 @@ export default function AIAdvisorCard({
             <CircularProgress />
           </Box>
         ) : (error || externalError) ? (
-          <Alert severity="warning">Özet şu anda hazırlanamadı. Birkaç saniye sonra yeniden deneyin.</Alert>
+          <Alert severity="warning">The summary could not be prepared right now. Please try again in a few seconds.</Alert>
         ) : activeData ? (
           <Stack spacing={2.5}>
             <Box
@@ -123,7 +123,7 @@ export default function AIAdvisorCard({
                   <Stack direction="row" spacing={1} alignItems="center" mb={1.25} flexWrap="wrap" useFlexGap>
                     <Chip
                       icon={<AutoAwesomeRoundedIcon />}
-                      label="Operasyon Brifingi"
+                      label="Operations Briefing"
                       color="primary"
                       variant="outlined"
                     />
@@ -167,7 +167,7 @@ export default function AIAdvisorCard({
                 >
                   <Stack direction="row" spacing={1} alignItems="center" mb={1}>
                     <BoltRoundedIcon fontSize="small" color="secondary" />
-                    <Typography variant="subtitle2">Önerilen İlk Hamle</Typography>
+                    <Typography variant="subtitle2">Recommended First Move</Typography>
                   </Stack>
                   <Typography variant="body2" sx={{ lineHeight: 1.75, overflowWrap: 'anywhere' }}>
                     {activeData.next_step}
@@ -191,7 +191,7 @@ export default function AIAdvisorCard({
                 >
                   <Stack direction="row" spacing={1} alignItems="center" mb={1}>
                     <InsightsRoundedIcon fontSize="small" color="info" />
-                    <Typography variant="subtitle2">Neden Şimdi?</Typography>
+                    <Typography variant="subtitle2">Why Now?</Typography>
                   </Stack>
                   <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8, overflowWrap: 'anywhere' }}>
                     {activeData.why_now}
@@ -210,7 +210,7 @@ export default function AIAdvisorCard({
                     background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
                   }}
                 >
-                  <Typography variant="subtitle2" sx={{ mb: 1.1 }}>Analist Notu</Typography>
+                  <Typography variant="subtitle2" sx={{ mb: 1.1 }}>Analyst Note</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8, overflowWrap: 'anywhere' }}>
                     {activeData.risk_posture}
                   </Typography>
@@ -219,7 +219,7 @@ export default function AIAdvisorCard({
             </Grid>
 
             <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1.25 }}>Odak Alanları</Typography>
+              <Typography variant="subtitle2" sx={{ mb: 1.25 }}>Focus Areas</Typography>
               <Grid container spacing={1.5}>
                 {activeData.priorities.map((item, index) => (
                   <Grid key={`${item.title}-${index}`} size={{ xs: 12, md: 6, xl: 4 }}>
@@ -236,7 +236,7 @@ export default function AIAdvisorCard({
                     >
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1} sx={{ mb: 1 }}>
                         <Typography variant="overline" sx={{ color: 'primary.light', letterSpacing: '0.1em' }}>
-                          Odak {String(index + 1).padStart(2, '0')}
+                          Focus {String(index + 1).padStart(2, '0')}
                         </Typography>
                       </Stack>
                       <Typography fontWeight={800} sx={{ mb: 0.75, overflowWrap: 'anywhere' }}>{item.title}</Typography>
@@ -255,7 +255,7 @@ export default function AIAdvisorCard({
                         }}
                       >
                         <Typography variant="caption" sx={{ color: 'primary.light', display: 'block', mb: 0.25 }}>
-                          Beklenen etki
+                          Expected impact
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6, overflowWrap: 'anywhere' }}>
                           {item.impact}

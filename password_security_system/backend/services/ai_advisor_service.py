@@ -14,7 +14,7 @@ DEFAULT_GEMINI_FALLBACKS = [
     "gemini-2.5-flash-lite",
 ]
 
-PLAN_WINDOWS = ["0-6 saat", "6-24 saat", "24-48 saat"]
+PLAN_WINDOWS = ["0-6 hours", "6-24 hours", "24-48 hours"]
 
 
 def _build_context(score_data: dict, action_data: dict) -> dict:
@@ -89,15 +89,15 @@ def _build_action_plan_context(action_data: dict) -> dict:
 def _credential_status_label(cred: dict) -> str:
     reasons = []
     if cred.get("is_breached") or cred.get("email_breached"):
-        reasons.append("ihlal riski")
+        reasons.append("breach risk")
     if cred.get("strength_label") == "weak":
-        reasons.append("zayıf parola")
+        reasons.append("weak password")
     if cred.get("is_stale"):
-        reasons.append("eski parola")
+        reasons.append("old password")
     if cred.get("breach_date_status") == "not_rotated":
-        reasons.append("ihlal sonrası güncellenmedi")
+        reasons.append("not updated after breach")
     if not reasons:
-        return "izleme"
+        return "monitor"
     return ", ".join(reasons[:2])
 
 
@@ -168,12 +168,12 @@ def _build_insights_context(score_data: dict, action_data: dict, credentials: li
 
 def _risk_posture(score: int) -> str:
     if score >= 85:
-        return "Savunma duruşu güçlü görünüyor."
+        return "The defense posture looks strong."
     if score >= 70:
-        return "Genel tablo iyi, ancak birkaç alan iyileştirme bekliyor."
+        return "The overall picture is good, but a few areas still need improvement."
     if score >= 45:
-        return "Risk görünümü dikkat istiyor; kısa vadeli müdahale gerekli."
-    return "Risk baskısı yüksek; kritik açıklar öncelikli ele alınmalı."
+        return "The risk outlook needs attention; short-term intervention is required."
+    return "Risk pressure is high; critical gaps should be addressed first."
 
 
 def _fallback_advice(score_data: dict, action_data: dict) -> dict:
@@ -186,56 +186,56 @@ def _fallback_advice(score_data: dict, action_data: dict) -> dict:
         site_prefix = f"{item['site_name']}: " if item.get("site_name") else ""
         detail = f"{site_prefix}{item['description']}"
         if item.get("estimated_score_gain", 0) > 0:
-            detail += f" Tahmini etki: +{item['estimated_score_gain']} puan."
+            detail += f" Estimated impact: +{item['estimated_score_gain']} points."
         priorities.append({
             "title": item["title"],
             "detail": detail,
-            "impact": "Bu adım atlanırsa ilgili risk baskısı devam eder.",
+            "impact": "If this step is skipped, the related risk pressure remains.",
         })
 
     if not priorities:
         priorities.append({
-            "title": "Belirgin açık aksiyon görünmüyor",
-            "detail": "Düzenli tarama ve parola rotasyonu ile mevcut güvenlik seviyesini koruyun.",
-            "impact": "Düzenli bakım yapılmazsa skor zamanla yeniden düşebilir.",
+            "title": "No obvious open action is visible",
+            "detail": "Maintain the current security level with regular scanning and password rotation.",
+            "impact": "Without regular maintenance, the score may decline again over time.",
         })
 
     summary_parts = []
     if breakdown["breach_any_count"] > 0:
-        summary_parts.append(f"{breakdown['breach_any_count']} ihlalli kayıt")
+        summary_parts.append(f"{breakdown['breach_any_count']} breached records")
     if breakdown["weak_count"] > 0:
-        summary_parts.append(f"{breakdown['weak_count']} zayıf parola")
+        summary_parts.append(f"{breakdown['weak_count']} weak passwords")
     if breakdown["reused_count"] > 0:
-        summary_parts.append(f"{breakdown['reused_count']} tekrar kullanılan parola")
+        summary_parts.append(f"{breakdown['reused_count']} reused passwords")
     if breakdown["stale_count"] > 0:
-        summary_parts.append(f"{breakdown['stale_count']} eski kayıt")
+        summary_parts.append(f"{breakdown['stale_count']} stale records")
 
     if summary_parts:
         summary = (
-            f"Skor {score_data['score']}/100 seviyesinde. "
-            f"En görünür baskı alanları: {', '.join(summary_parts)}."
+            f"Score is at {score_data['score']}/100. "
+            f"Most visible pressure points: {', '.join(summary_parts)}."
         )
     else:
         summary = (
-            f"Skor {score_data['score']}/100 seviyesinde. "
-            "Şu an büyük bir risk baskısı görünmüyor; sürdürülebilir güvenlik için düzenli izleme yeterli."
+            f"Score is at {score_data['score']}/100. "
+            "No major risk pressure is visible right now; regular monitoring is enough for sustainable security."
         )
 
     if primary_action:
-        next_step = f"İlk adım olarak '{primary_action['title']}' aksiyonunu ele alın."
+        next_step = f"As a first step, handle the action '{primary_action['title']}'."
     elif breakdown["totp_enabled_count"] == 0 and breakdown["total_credentials"] > 0:
-        next_step = "İlk adım olarak kritik hesaplara TOTP ekleyin."
+        next_step = "As a first step, add TOTP to critical accounts."
     else:
-        next_step = "İlk adım olarak kritik hesapları gözden geçirip düzenli parola yenileme planı oluşturun."
+        next_step = "As a first step, review critical accounts and create a regular password rotation plan."
 
     return {
         "source": "fallback",
         "model": "local-risk-summary",
         "generated_at": datetime.utcnow(),
-        "headline": "Mevcut risk görünümünde kısa vadeli müdahale gerektiren noktalar var.",
+        "headline": "There are items in the current risk outlook that require short-term intervention.",
         "summary": summary,
         "risk_posture": _risk_posture(score_data["score"]),
-        "why_now": "Kritik risk kalemleri çözümsüz kaldıkça hem hesap ele geçirme ihtimali hem de zincirleme etki büyür.",
+        "why_now": "As long as critical risk items remain unresolved, both the chance of account takeover and the chain impact grow.",
         "next_step": next_step,
         "priorities": priorities,
     }
@@ -255,8 +255,8 @@ def _fallback_plan_48h(action_data: dict) -> list[dict]:
         else:
             plan.append({
                 "window": window,
-                "title": "Düzenli güvenlik bakımı",
-                "detail": "Açık kritik iş kalmadıysa kasadaki kayıtları ve 2FA durumunu gözden geçirin.",
+                "title": "Routine security maintenance",
+                "detail": "If no critical open work remains, review vault records and 2FA status.",
             })
     return plan
 
@@ -264,46 +264,46 @@ def _fallback_plan_48h(action_data: dict) -> list[dict]:
 def _action_effect_text(item: dict) -> str:
     gain = item.get("estimated_score_gain", 0)
     if gain > 0:
-        return f"Skor yaklaşık +{gain} puan iyileşebilir"
+        return f"The score could improve by about +{gain} points"
     if item.get("kind") == "recovery_codes":
-        return "Hesap kurtarma güvenliği güçlenir"
-    return "Risk baskısı azalır"
+        return "Account recovery security becomes stronger"
+    return "Risk pressure decreases"
 
 
 def _what_if_title(item: dict) -> str:
     site_name = item.get("site_name")
     kind = item.get("kind")
     if kind == "breach_followup":
-        return f"{site_name or 'İhlalli hesap'} güncellenirse"
+        return f"If {site_name or 'the breached account'} is updated"
     if kind == "weak_password":
-        return f"{site_name or 'Zayıf parola'} güçlendirilirse"
+        return f"If {site_name or 'the weak password'} is strengthened"
     if kind == "reused_password":
-        return "Tekrar kullanılan parolalar ayrılırsa"
+        return "If reused passwords are separated"
     if kind == "stale_password":
-        return f"{site_name or 'Eski parola'} döndürülürse"
+        return f"If {site_name or 'the old password'} is rotated"
     if kind == "recovery_codes":
-        return "Recovery code stoğu yenilenirse"
+        return "If the recovery code inventory is renewed"
     if kind == "totp_bonus":
-        return "TOTP etkinleştirilirse"
-    return item.get("title", "Risk azaltma adımı tamamlanırsa")
+        return "If TOTP is enabled"
+    return item.get("title", "If the risk-reduction step is completed")
 
 
 def _what_if_detail(item: dict) -> str:
-    site_prefix = f"{item['site_name']} hesabında " if item.get("site_name") else ""
+    site_prefix = f"On the {item['site_name']} account, " if item.get("site_name") else ""
     kind = item.get("kind")
     if kind == "breach_followup":
-        return f"{site_prefix}ihlal sonrası parola değişimi ve ikinci faktör eklenmesi açık ihlal baskısını azaltır."
+        return f"{site_prefix}changing the password after a breach and adding a second factor reduces open breach pressure."
     if kind == "weak_password":
-        return f"{site_prefix}zayıf parola daha güçlü ve benzersiz bir parola ile değiştirildiğinde ele geçirilme riski düşer."
+        return f"{site_prefix}replacing the weak password with a stronger and unique one lowers takeover risk."
     if kind == "reused_password":
-        return "Aynı parolayı paylaşan kayıtlar ayrıldığında zincirleme hesap etkisi azaltılır."
+        return "Separating records that share the same password reduces cascading account impact."
     if kind == "stale_password":
-        return f"{site_prefix}uzun süredir değişmeyen parola yenilendiğinde güncel olmayan kimlik bilgisi riski azalır."
+        return f"{site_prefix}renewing a long-unchanged password lowers stale credential risk."
     if kind == "recovery_codes":
-        return "Yedek kodlar yenilendiğinde authenticator erişimi kaybolsa bile hesap kurtarma güvenceye alınır."
+        return "When backup codes are renewed, account recovery remains protected even if authenticator access is lost."
     if kind == "totp_bonus":
-        return "Kritik hesaplarda ikinci faktör açıldığında yalnızca parola ele geçirilse bile ek koruma devreye girer."
-    return item.get("description", "Bu adım tamamlandığında ilgili risk kalemi zayıflar.")
+        return "When a second factor is enabled on critical accounts, extra protection kicks in even if the password is exposed."
+    return item.get("description", "Completing this step weakens the related risk factor.")
 
 
 def _fallback_what_if(action_data: dict) -> list[dict]:
@@ -316,9 +316,9 @@ def _fallback_what_if(action_data: dict) -> list[dict]:
         })
     if not scenarios:
         scenarios.append({
-            "title": "Mevcut seviyeyi koru",
-            "effect": "Skoru dengede tutar",
-            "detail": "Parola rotasyonu ve 2FA disiplini sürdürülürse yeni risk baskısı sınırlı kalır.",
+            "title": "Maintain the current level",
+            "effect": "Keeps the score stable",
+            "detail": "If password rotation and 2FA discipline continue, new risk pressure should remain limited.",
         })
     return scenarios[:3]
 
@@ -328,45 +328,45 @@ def _fallback_weekly_summary(score_data: dict, trend_data: dict, action_data: di
     trend = trend_data.get("summary", {})
     score_delta = int(trend.get("score_delta", 0) or 0)
     if score_delta > 0:
-        trend_line = f"Son kayıt aralığında skor {score_delta} puan iyileşmiş."
+        trend_line = f"Across the latest recorded interval, the score improved by {score_delta} points."
     elif score_delta < 0:
-        trend_line = f"Son kayıt aralığında skor {abs(score_delta)} puan gerilemiş."
+        trend_line = f"Across the latest recorded interval, the score declined by {abs(score_delta)} points."
     else:
-        trend_line = "Son kayıt aralığında skor büyük ölçüde yatay seyretmiş."
+        trend_line = "Across the latest recorded interval, the score stayed mostly flat."
 
     watch_items = []
     if breakdown["breach_any_count"] > 0:
         watch_items.append(
-            f"{breakdown['breach_any_count']} kayıt ihlal riski taşıyor; bu hesaplar kapanmadan kritik baskı devam eder."
+            f"{breakdown['breach_any_count']} records carry breach risk; critical pressure remains until those accounts are closed out."
         )
     if breakdown["weak_count"] > 0:
         watch_items.append(
-            f"{breakdown['weak_count']} zayıf parola hızlı iyileştirme alanı sunuyor."
+            f"{breakdown['weak_count']} weak passwords offer a fast improvement opportunity."
         )
     if breakdown["reused_count"] > 0:
         watch_items.append(
-            f"{breakdown['reused_count']} tekrar kullanılan parola, tek sızıntının birden fazla hesabı etkilemesine yol açabilir."
+            f"{breakdown['reused_count']} reused passwords could let a single leak affect multiple accounts."
         )
     if breakdown["stale_count"] > 0 and len(watch_items) < 3:
         watch_items.append(
-            f"{breakdown['stale_count']} kayıt 90 gün eşiğini aşmış durumda; özellikle kritik hesaplar için parola rotasyonu önerilir."
+            f"{breakdown['stale_count']} records have crossed the 90-day threshold; password rotation is recommended, especially for critical accounts."
         )
     if breakdown["totp_enabled_count"] == 0 and breakdown["total_credentials"] > 0 and len(watch_items) < 3:
-        watch_items.append("Henüz TOTP aktif kayıt görünmüyor; ikinci faktör koruması hâlâ açık bir iyileştirme alanı.")
+        watch_items.append("No TOTP-enabled records are visible yet; second-factor protection is still an open improvement area.")
     if action_data["summary"]["open_actions"] > 0 and len(watch_items) < 3:
         watch_items.append(
-            f"{action_data['summary']['open_actions']} açık aksiyon bulunuyor; ilk üç aksiyon kapatıldığında görünüm daha dengeli hale gelir."
+            f"There are {action_data['summary']['open_actions']} open actions; closing the first three should make the outlook more balanced."
         )
 
     while len(watch_items) < 3:
-        watch_items.append("Büyük bir yeni risk görünmüyor; düzenli tarama ve parola yenileme ile mevcut seviye korunabilir.")
+        watch_items.append("No major new risk is visible; the current level can be maintained with regular scanning and password rotation.")
 
     return {
-        "headline": "Haftalık parola güvenliği özeti",
+        "headline": "Weekly password security summary",
         "summary": (
-            f"Anlık skor {score_data['score']}/100. {trend_line} "
-            f"Şu anda {breakdown['weak_count']} zayıf, {breakdown['breach_any_count']} ihlal riski taşıyan "
-            f"ve {breakdown['reused_count']} tekrar kullanılan kayıt bulunuyor."
+            f"Current score is {score_data['score']}/100. {trend_line} "
+            f"There are currently {breakdown['weak_count']} weak, {breakdown['breach_any_count']} breach-exposed, "
+            f"and {breakdown['reused_count']} reused records."
         ),
         "watch_items": watch_items[:3],
     }
@@ -375,19 +375,19 @@ def _fallback_weekly_summary(score_data: dict, trend_data: dict, action_data: di
 def _account_recommendation(cred: dict) -> str:
     recommendations = []
     if cred.get("is_breached") or cred.get("email_breached") or cred.get("breach_date_status") == "not_rotated":
-        recommendations.append("parolayı hemen değiştirin")
+        recommendations.append("change the password immediately")
     if cred.get("strength_label") == "weak":
-        recommendations.append("benzersiz ve güçlü bir parola kullanın")
+        recommendations.append("use a unique and strong password")
     if cred.get("is_stale"):
-        recommendations.append("parolayı güncelleyin")
+        recommendations.append("update the password")
     if not cred.get("totp_secret") and cred.get("category") in {"banking", "email", "work"}:
-        recommendations.append("mümkünse TOTP ekleyin")
+        recommendations.append("add TOTP if possible")
 
     if not recommendations:
-        return "Kaydı izlemeye devam edin ve düzenli güvenlik taramasını sürdürün."
+        return "Continue monitoring the record and keep running regular security scans."
 
     sentence = ", ".join(recommendations[:3])
-    return f"Bu hesap için {sentence}."
+    return f"For this account, {sentence}."
 
 
 def _fallback_account_reviews(credentials: list[dict]) -> list[dict]:
@@ -398,7 +398,7 @@ def _fallback_account_reviews(credentials: list[dict]) -> list[dict]:
             "credential_id": cred["id"],
             "site_name": cred["site_name"],
             "status_label": status_label,
-            "summary": f"{cred['site_name']} kaydı şu anda {status_label} nedeniyle öncelikli inceleme gerektiriyor.",
+            "summary": f"The {cred['site_name']} record currently needs priority review because it is marked as {status_label}.",
             "recommendation": _account_recommendation(cred),
         })
     return reviews

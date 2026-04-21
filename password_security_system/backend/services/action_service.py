@@ -103,12 +103,12 @@ def get_action_center_raw(db: Session, user_id: int, key: Optional[bytes] = None
                 action_id=f"breach-{incident.id}",
                 kind="breach_followup",
                 priority="critical",
-                title=f"{credential.site_name if credential else 'Kayıt'} için breach takibi açık",
+                title=f"Open breach follow-up for {credential.site_name if credential else 'record'}",
                 description=(
-                    f"Yeni veya çözülmemiş ihlal kaydı var. "
-                    f"{', '.join(breach_names[:3]) if breach_names else 'Breach tarihi'} sonrası parola değişimi bekleniyor."
+                    f"There is a new or unresolved breach record. "
+                    f"A password change is expected after {', '.join(breach_names[:3]) if breach_names else 'the breach date'}."
                 ),
-                action_label="Parolayı güncelle",
+                action_label="Update password",
                 estimated_score_gain=max(4, round(100 * 0.25 * breakdown["breach_any_ratio"])),
                 credential_id=incident.credential_id,
                 site_name=credential.site_name if credential else None,
@@ -122,9 +122,9 @@ def get_action_center_raw(db: Session, user_id: int, key: Optional[bytes] = None
                 action_id=f"weak-{cred.id}",
                 kind="weak_password",
                 priority="high",
-                title=f"{cred.site_name} için parola zayıf",
-                description="Bu kayıt zayıf parola sınıfında. Daha uzun ve benzersiz bir parola önerilir.",
-                action_label="Güçlü parola üret",
+                title=f"Weak password for {cred.site_name}",
+                description="This record is in the weak-password class. A longer, unique password is recommended.",
+                action_label="Generate a strong password",
                 estimated_score_gain=max(2, round(100 * 0.30 * breakdown["weak_ratio"])),
                 credential_id=cred.id,
                 site_name=cred.site_name,
@@ -141,9 +141,9 @@ def get_action_center_raw(db: Session, user_id: int, key: Optional[bytes] = None
                 action_id=f"reuse-{index}",
                 kind="reused_password",
                 priority="high",
-                title="Aynı parola birden fazla hesapta kullanılıyor",
-                description=f"Etkilenen kayıtlar: {', '.join(group)}.",
-                action_label="Parolaları ayır",
+                title="The same password is used across multiple accounts",
+                description=f"Affected records: {', '.join(group)}.",
+                action_label="Split passwords",
                 estimated_score_gain=max(2, round(100 * 0.20 * breakdown["reused_ratio"])),
                 credential_ids=group_ids,
             )
@@ -159,9 +159,9 @@ def get_action_center_raw(db: Session, user_id: int, key: Optional[bytes] = None
                 action_id=f"stale-{cred.id}",
                 kind="stale_password",
                 priority="medium",
-                title=f"{cred.site_name} uzun süredir güncellenmedi",
-                description="90 günden eski parola kritik hesaplarda ekstra risk oluşturabilir.",
-                action_label="Parolayı döndür",
+                title=f"{cred.site_name} has not been updated in a long time",
+                description="A password older than 90 days may create extra risk on critical accounts.",
+                action_label="Rotate password",
                 estimated_score_gain=max(1, round(100 * 0.10 * breakdown["stale_ratio"])),
                 credential_id=cred.id,
                 site_name=cred.site_name,
@@ -181,9 +181,9 @@ def get_action_center_raw(db: Session, user_id: int, key: Optional[bytes] = None
                 action_id="recovery-codes-none",
                 kind="recovery_codes",
                 priority="critical",
-                title="Recovery code yok",
-                description="Authenticator erişimi kaybolursa hesaba dönüş için yedek kod bulunmuyor.",
-                action_label="Yeni recovery code üret",
+                title="No recovery codes available",
+                description="There are no backup codes available to regain access if authenticator access is lost.",
+                action_label="Generate new recovery codes",
                 estimated_score_gain=0,
             )
         )
@@ -193,9 +193,9 @@ def get_action_center_raw(db: Session, user_id: int, key: Optional[bytes] = None
                 action_id="recovery-codes-low",
                 kind="recovery_codes",
                 priority="high",
-                title="Recovery code stoğu azalıyor",
-                description=f"Yalnızca {remaining_codes} kullanılmamış recovery code kaldı.",
-                action_label="Kodları yenile",
+                title="Recovery code inventory is running low",
+                description=f"Only {remaining_codes} unused recovery codes remain.",
+                action_label="Refresh codes",
                 estimated_score_gain=0,
             )
         )
@@ -206,9 +206,9 @@ def get_action_center_raw(db: Session, user_id: int, key: Optional[bytes] = None
                 action_id="totp-bonus",
                 kind="totp_bonus",
                 priority="medium",
-                title="TOTP bonusu kullanılmıyor",
-                description="Kritik hesaplarda TOTP açmak hem güvenliği artırır hem skora bonus getirir.",
-                action_label="TOTP ekle",
+                title="TOTP bonus is not being used",
+                description="Enabling TOTP on critical accounts improves security and adds a score bonus.",
+                action_label="Add TOTP",
                 estimated_score_gain=8,
             )
         )

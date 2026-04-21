@@ -19,15 +19,15 @@ import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded'
 import VisibilityOffRoundedIcon from '@mui/icons-material/VisibilityOffRounded'
 
 const CATEGORIES = ['', 'email', 'banking', 'social', 'work', 'other']
-const CAT_LABELS  = { '': 'Tümü', email: 'E-posta', banking: 'Bankacılık', social: 'Sosyal', work: 'İş', other: 'Diğer' }
+const CAT_LABELS  = { '': 'All', email: 'Email', banking: 'Banking', social: 'Social', work: 'Work', other: 'Other' }
 const STRENGTH_COLOR = { weak: 'error', medium: 'warning', strong: 'success' }
-const STRENGTH_TEXT = { weak: 'zayıf', medium: 'orta', strong: 'güçlü' }
+const STRENGTH_TEXT = { weak: 'weak', medium: 'medium', strong: 'strong' }
 
 function StrengthBadge({ label, verbose = false }) {
   const text = STRENGTH_TEXT[label] ?? label
   return (
     <Chip
-      label={verbose ? `karmaşıklık: ${text}` : text}
+      label={verbose ? `complexity: ${text}` : text}
       size="small"
       color={STRENGTH_COLOR[label] ?? 'default'}
     />
@@ -37,9 +37,9 @@ function StrengthBadge({ label, verbose = false }) {
 function SecurityStatusChip({ cred }) {
   const critical = cred.is_breached || cred.email_breached || cred.breach_date_status === 'not_rotated'
   const warning = cred.is_stale
-  if (critical) return <Chip label="genel risk: yüksek" size="small" color="error" />
-  if (warning) return <Chip label="genel risk: orta" size="small" color="warning" />
-  return <Chip label="genel risk: düşük" size="small" color="success" />
+  if (critical) return <Chip label="overall risk: high" size="small" color="error" />
+  if (warning) return <Chip label="overall risk: medium" size="small" color="warning" />
+  return <Chip label="overall risk: low" size="small" color="success" />
 }
 
 function TOTPPanel({ credId }) {
@@ -113,7 +113,7 @@ function TOTPPanel({ credId }) {
             <ContentCopyIcon fontSize="small" />
           </IconButton>
           <Typography variant="caption" color="text.secondary">{code.valid_seconds}s</Typography>
-          <Button size="small" color="error" onClick={handleRemove} disabled={loading}>Kaldır</Button>
+          <Button size="small" color="error" onClick={handleRemove} disabled={loading}>Remove</Button>
         </Stack>
         <LinearProgress variant="determinate" value={pct} color={pct > 33 ? 'success' : 'error'} sx={{ height: 4, borderRadius: 2 }} />
         {err && <Alert severity="error" sx={{ mt: 1 }}>{err}</Alert>}
@@ -126,18 +126,18 @@ function TOTPPanel({ credId }) {
     <Box>
       <Stack direction="row" spacing={1}>
         <Button size="small" variant="outlined" onClick={handleLoad} disabled={loading}>
-          {loading ? <CircularProgress size={14} /> : 'Kodu Göster'}
+          {loading ? <CircularProgress size={14} /> : 'Show Code'}
         </Button>
         <TextField
           size="small"
           label="TOTP setup key"
-          placeholder="Uygulamanın verdiği secret key"
-          helperText="6 haneli anlık kodu değil, hesabın 2FA kurulumunda verilen setup key veya manual entry key bilgisini girin."
+          placeholder="Secret key provided by the app"
+          helperText="Enter the setup key or manual entry key from the account's 2FA setup, not the 6-digit live code."
           value={secret}
           onChange={e => setSecret(e.target.value)}
           sx={{ flex: 1 }}
         />
-        <Button size="small" variant="contained" onClick={handleSave} disabled={loading || !secret.trim()}>Kaydet</Button>
+        <Button size="small" variant="contained" onClick={handleSave} disabled={loading || !secret.trim()}>Save</Button>
       </Stack>
       {err && <Alert severity="error" sx={{ mt: 1 }}>{err}</Alert>}
     </Box>
@@ -156,14 +156,14 @@ function HistoryPanel({ credId }) {
   }, [credId])
 
   if (loading) return <CircularProgress size={16} />
-  if (!history || history.length === 0) return <Typography variant="caption" color="text.secondary">Geçmiş yok.</Typography>
+  if (!history || history.length === 0) return <Typography variant="caption" color="text.secondary">No history.</Typography>
 
   return (
     <List dense disablePadding>
       {history.map((h, i) => (
         <ListItem key={h.id} disableGutters>
           <ListItemText
-            primary={`#${i + 1} — ${new Date(h.archived_at).toLocaleString('tr-TR')}`}
+            primary={`#${i + 1} — ${new Date(h.archived_at).toLocaleString('en-US')}`}
             primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
           />
         </ListItem>
@@ -202,13 +202,13 @@ function CredentialRow({ cred, expanded, highlighted, onToggleExpanded, onEdit, 
             <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
               <Typography variant="subtitle1" fontWeight={700}>{cred.site_name}</Typography>
               <Chip label={CAT_LABELS[cred.category] ?? cred.category} size="small" variant="outlined" />
-              {cred.is_stale && <Chip label="Eski kayıt" size="small" color="warning" />}
-              {cred.is_breached && <Chip label={`Şifre ihlali${cred.breach_count > 0 ? ` ${cred.breach_count.toLocaleString()}x` : ''}`} size="small" color="error" />}
-              {cred.email_breached && <Chip label={`E-posta ihlali ${cred.email_breach_count}`} size="small" color="error" />}
-              {cred.breach_date_status === 'not_rotated' && <Chip label="İhlal sonrası güncellenmedi" size="small" color="error" />}
-              {cred.breach_date_status === 'changed_after' && <Chip label="İhlal sonrası güncellendi" size="small" color="success" />}
-              {cred.breach_date_status === 'investigate' && <Chip label="Takipte" size="small" color="warning" />}
-              {cred.totp_secret && <Chip label="TOTP aktif" size="small" color="info" icon={<QrCodeIcon />} />}
+              {cred.is_stale && <Chip label="Stale record" size="small" color="warning" />}
+              {cred.is_breached && <Chip label={`Password breach${cred.breach_count > 0 ? ` ${cred.breach_count.toLocaleString()}x` : ''}`} size="small" color="error" />}
+              {cred.email_breached && <Chip label={`Email breach ${cred.email_breach_count}`} size="small" color="error" />}
+              {cred.breach_date_status === 'not_rotated' && <Chip label="Not updated after breach" size="small" color="error" />}
+              {cred.breach_date_status === 'changed_after' && <Chip label="Updated after breach" size="small" color="success" />}
+              {cred.breach_date_status === 'investigate' && <Chip label="Under review" size="small" color="warning" />}
+              {cred.totp_secret && <Chip label="TOTP enabled" size="small" color="info" icon={<QrCodeIcon />} />}
             </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.9 }}>
               {cred.site_username}
@@ -233,7 +233,7 @@ function CredentialRow({ cred, expanded, highlighted, onToggleExpanded, onEdit, 
             endIcon={expanded ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
             onClick={() => onToggleExpanded(cred.id)}
           >
-            {expanded ? 'Detayı kapat' : 'Detayı aç'}
+            {expanded ? 'Hide details' : 'Show details'}
           </Button>
           <IconButton size="small" onClick={() => onEdit(cred)}><EditIcon fontSize="small" /></IconButton>
           <IconButton size="small" color="error" onClick={() => onDelete(cred.id)}><DeleteIcon fontSize="small" /></IconButton>
@@ -245,69 +245,69 @@ function CredentialRow({ cred, expanded, highlighted, onToggleExpanded, onEdit, 
           <Grid container spacing={1.25} sx={{ mt: 1.25 }}>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ p: 1.4, borderRadius: 3, bgcolor: 'background.default' }}>
-                <Typography variant="caption" color="text.secondary">Parola karmaşıklığı: </Typography>
+                <Typography variant="caption" color="text.secondary">Password complexity: </Typography>
                 <StrengthBadge label={cred.strength_label} />
               </Box>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ p: 1.4, borderRadius: 3, bgcolor: 'background.default' }}>
-                <Typography variant="caption" color="text.secondary">Güvenlik durumu: </Typography>
+                <Typography variant="caption" color="text.secondary">Security status: </Typography>
                 <SecurityStatusChip cred={cred} />
               </Box>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ p: 1.4, borderRadius: 3, bgcolor: 'background.default' }}>
-                <Typography variant="caption" color="text.secondary">Son güncelleme: </Typography>
+                <Typography variant="caption" color="text.secondary">Last update: </Typography>
                 <Typography component="span" variant="caption" fontWeight={700}>
-                  {cred.updated_at ? new Date(cred.updated_at).toLocaleDateString('tr-TR') : '—'}
+                  {cred.updated_at ? new Date(cred.updated_at).toLocaleDateString('en-US') : '—'}
                 </Typography>
               </Box>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ p: 1.4, borderRadius: 3, bgcolor: 'background.default' }}>
-                <Typography variant="caption" color="text.secondary">Şifre ihlali: </Typography>
+                <Typography variant="caption" color="text.secondary">Password breach: </Typography>
                 {cred.is_breached
-                  ? <Typography component="span" variant="caption" fontWeight={700} color="error.main">Evet — {cred.breach_count.toLocaleString()} kez</Typography>
-                  : <Typography component="span" variant="caption" fontWeight={700} color="success.main">Hayır</Typography>
+                  ? <Typography component="span" variant="caption" fontWeight={700} color="error.main">Yes — {cred.breach_count.toLocaleString()} times</Typography>
+                  : <Typography component="span" variant="caption" fontWeight={700} color="success.main">No</Typography>
                 }
               </Box>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ p: 1.4, borderRadius: 3, bgcolor: 'background.default' }}>
-                <Typography variant="caption" color="text.secondary">E-posta ihlali: </Typography>
+                <Typography variant="caption" color="text.secondary">Email breach: </Typography>
                 {cred.email_breached
-                  ? <Typography component="span" variant="caption" fontWeight={700} color="error.main">Evet — {cred.email_breach_count} kez</Typography>
-                  : <Typography component="span" variant="caption" fontWeight={700} color="success.main">Hayır — 0</Typography>
+                  ? <Typography component="span" variant="caption" fontWeight={700} color="error.main">Yes — {cred.email_breach_count} times</Typography>
+                  : <Typography component="span" variant="caption" fontWeight={700} color="success.main">No — 0</Typography>
                 }
               </Box>
             </Grid>
             <Grid size={{ xs: 12 }}>
               <Box sx={{ p: 1.4, borderRadius: 3, bgcolor: 'background.default', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                <Typography variant="caption" color="text.secondary">Parola: </Typography>
+                <Typography variant="caption" color="text.secondary">Password: </Typography>
                 <Typography component="code" sx={{ fontFamily: 'monospace', color: 'info.main', fontSize: '0.875rem' }}>
                   {show ? cred.password : '••••••••'}
                 </Typography>
                 <Button size="small" onClick={() => setShow(s => !s)}>
-                  {show ? 'Gizle' : 'Göster'}
+                  {show ? 'Hide' : 'Show'}
                 </Button>
                 <Button size="small" onClick={() => navigator.clipboard.writeText(cred.password)}>
-                  Kopyala
+                  Copy
                 </Button>
               </Box>
             </Grid>
             <Grid size={{ xs: 12 }}>
               <Box sx={{ p: 1.4, borderRadius: 3, bgcolor: 'background.default' }}>
-                <Typography variant="caption" color="text.secondary">Oluşturuldu: </Typography>
-                <Typography component="span" variant="caption">{new Date(cred.created_at).toLocaleString('tr-TR')}</Typography>
-                <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 2 }}>Güncellendi: </Typography>
-                <Typography component="span" variant="caption">{new Date(cred.updated_at).toLocaleString('tr-TR')}</Typography>
+                <Typography variant="caption" color="text.secondary">Created: </Typography>
+                <Typography component="span" variant="caption">{new Date(cred.created_at).toLocaleString('en-US')}</Typography>
+                <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 2 }}>Updated: </Typography>
+                <Typography component="span" variant="caption">{new Date(cred.updated_at).toLocaleString('en-US')}</Typography>
               </Box>
             </Grid>
             {(cred.is_breached || cred.email_breached) && (
               <Grid size={{ xs: 12 }}>
                 <Alert severity="error" variant="outlined" sx={{ py: 0.5 }}>
-                  {cred.is_breached && <div>Bu parola <strong>{cred.breach_count.toLocaleString()}</strong> kez ihlal veritabanında görüldü. Hemen değiştirin.</div>}
-                  {cred.email_breached && <div>Bu e-posta <strong>{cred.email_breach_count}</strong> farklı ihlalde yer alıyor.</div>}
+                  {cred.is_breached && <div>This password appeared <strong>{cred.breach_count.toLocaleString()}</strong> times in breach databases. Change it immediately.</div>}
+                  {cred.email_breached && <div>This email appears in <strong>{cred.email_breach_count}</strong> different breaches.</div>}
                 </Alert>
               </Grid>
             )}
@@ -317,9 +317,9 @@ function CredentialRow({ cred, expanded, highlighted, onToggleExpanded, onEdit, 
           <Divider sx={{ my: 1.5 }} />
           <Stack direction="row" alignItems="center" spacing={1} mb={1}>
             <QrCodeIcon fontSize="small" color="info" />
-            <Typography variant="body2" fontWeight={600}>TOTP Kodu</Typography>
+            <Typography variant="body2" fontWeight={600}>TOTP Code</Typography>
             <Button size="small" onClick={() => setShowTOTP(v => !v)}>
-              {showTOTP ? 'Gizle' : 'Göster'}
+              {showTOTP ? 'Hide' : 'Show'}
             </Button>
           </Stack>
           <Collapse in={showTOTP}>
@@ -330,9 +330,9 @@ function CredentialRow({ cred, expanded, highlighted, onToggleExpanded, onEdit, 
           <Divider sx={{ my: 1.5 }} />
           <Stack direction="row" alignItems="center" spacing={1} mb={1}>
             <HistoryIcon fontSize="small" color="action" />
-            <Typography variant="body2" fontWeight={600}>Şifre Geçmişi</Typography>
+            <Typography variant="body2" fontWeight={600}>Password History</Typography>
             <Button size="small" onClick={() => setShowHistory(v => !v)}>
-              {showHistory ? 'Gizle' : 'Göster'}
+              {showHistory ? 'Hide' : 'Show'}
             </Button>
           </Stack>
           <Collapse in={showHistory}>
@@ -382,21 +382,21 @@ function CredentialModal({ open, initial, onClose, onSave }) {
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{isEdit ? 'Düzenle' : 'Yeni Credential'}</DialogTitle>
+      <DialogTitle>{isEdit ? 'Edit' : 'New Credential'}</DialogTitle>
       <Box component="form" onSubmit={handleSubmit}>
         <DialogContent>
-          <TextField fullWidth required label="Site / Uygulama Adı"
+          <TextField fullWidth required label="Site / App Name"
             value={form.site_name} onChange={set('site_name')} sx={{ mb: 2 }} />
-          <TextField fullWidth required label="Kullanıcı Adı / E-posta"
+          <TextField fullWidth required label="Username / Email"
             value={form.site_username} onChange={set('site_username')} sx={{ mb: 2 }} />
           <TextField
             fullWidth
-            label={isEdit ? 'Yeni Şifre (boş bırakırsan değişmez)' : 'Şifre'}
+            label={isEdit ? 'New Password (leave empty to keep current)' : 'Password'}
             type={showPw ? 'text' : 'password'}
             required={!isEdit}
             value={form.password}
             onChange={set('password')}
-            helperText="Kayıt sırasında HIBP ihlal kontrolü otomatik yapılır."
+            helperText="HIBP breach checking runs automatically during save."
             slotProps={{
               input: {
                 endAdornment: (
@@ -411,8 +411,8 @@ function CredentialModal({ open, initial, onClose, onSave }) {
             sx={{ mb: 2 }}
           />
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Kategori</InputLabel>
-            <Select value={form.category} onChange={set('category')} label="Kategori">
+            <InputLabel>Category</InputLabel>
+            <Select value={form.category} onChange={set('category')} label="Category">
               {['other','email','banking','social','work'].map(c => (
                 <MenuItem key={c} value={c}>{CAT_LABELS[c]}</MenuItem>
               ))}
@@ -421,10 +421,10 @@ function CredentialModal({ open, initial, onClose, onSave }) {
           {error && <Alert severity="error">{error}</Alert>}
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>İptal</Button>
+          <Button onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="contained" disabled={loading}>
             {loading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
-            Kaydet
+            Save
           </Button>
         </DialogActions>
       </Box>
@@ -436,11 +436,11 @@ function BulkCategoryDialog({ open, onClose, onConfirm }) {
   const [cat, setCat] = useState('other')
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Toplu Kategori Değiştir</DialogTitle>
+      <DialogTitle>Bulk Change Category</DialogTitle>
       <DialogContent>
         <FormControl fullWidth sx={{ mt: 1 }}>
-          <InputLabel>Yeni Kategori</InputLabel>
-          <Select value={cat} onChange={e => setCat(e.target.value)} label="Yeni Kategori">
+          <InputLabel>New Category</InputLabel>
+          <Select value={cat} onChange={e => setCat(e.target.value)} label="New Category">
             {['email','banking','social','work','other'].map(c => (
               <MenuItem key={c} value={c}>{CAT_LABELS[c]}</MenuItem>
             ))}
@@ -448,8 +448,8 @@ function BulkCategoryDialog({ open, onClose, onConfirm }) {
         </FormControl>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>İptal</Button>
-        <Button variant="contained" onClick={() => onConfirm(cat)}>Uygula</Button>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" onClick={() => onConfirm(cat)}>Apply</Button>
       </DialogActions>
     </Dialog>
   )
@@ -517,17 +517,17 @@ export default function PasswordsTab({ navigationTarget }) {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Bu credential silinsin mi?')) return
+    if (!confirm('Delete this credential?')) return
     await api.deletePassword(id)
     load()
   }
 
   async function handleBulkDelete() {
-    if (!confirm(`${selected.size} credential silinsin mi?`)) return
+    if (!confirm(`Delete ${selected.size} credentials?`)) return
     setBulkMsg(null)
     try {
       const res = await api.bulkDelete([...selected])
-      setBulkMsg({ type: 'success', text: `${res.deleted} credential silindi.` })
+      setBulkMsg({ type: 'success', text: `${res.deleted} credentials deleted.` })
       load()
     } catch (e) {
       setBulkMsg({ type: 'error', text: e.message })
@@ -538,7 +538,7 @@ export default function PasswordsTab({ navigationTarget }) {
     setBulkCatOpen(false); setBulkMsg(null)
     try {
       const res = await api.bulkUpdateCategory([...selected], cat)
-      setBulkMsg({ type: 'success', text: `${res.updated} credential güncellendi.` })
+      setBulkMsg({ type: 'success', text: `${res.updated} credentials updated.` })
       load()
     } catch (e) {
       setBulkMsg({ type: 'error', text: e.message })
@@ -583,7 +583,7 @@ export default function PasswordsTab({ navigationTarget }) {
       setSelected(new Set(targetCreds.map(cred => cred.id)))
       setBulkMsg({
         type: 'info',
-        text: `Tekrar kullanılan ${targetCreds.length} kayıt seçildi. Bu kayıtların parolalarını birbirinden ayırabilirsin.`,
+        text: `${targetCreds.length} reused records were selected. You can now separate their passwords.`,
       })
     }
 
@@ -610,23 +610,23 @@ export default function PasswordsTab({ navigationTarget }) {
           <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', lg: 'center' }} justifyContent="space-between">
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }} flexWrap="wrap">
               <FormControl size="small" sx={{ minWidth: 180 }}>
-                <InputLabel>Kategori</InputLabel>
-                <Select value={category} onChange={e => setCategory(e.target.value)} label="Kategori">
+                <InputLabel>Category</InputLabel>
+                <Select value={category} onChange={e => setCategory(e.target.value)} label="Category">
                   {CATEGORIES.map(c => <MenuItem key={c} value={c}>{CAT_LABELS[c]}</MenuItem>)}
                 </Select>
               </FormControl>
               <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => setModal({ open: true, initial: null })}>
-                Yeni kayıt
+                New record
               </Button>
               {creds.length > 0 && (
                 <Button size="small" variant="outlined" onClick={toggleSelectAll}>
-                  {selected.size === creds.length ? 'Seçimi kaldır' : 'Tümünü seç'}
+                  {selected.size === creds.length ? 'Clear selection' : 'Select all'}
                 </Button>
               )}
             </Stack>
 
             <Typography variant="body2" color="text.secondary">
-              {creds.length} kayıt görüntüleniyor
+              {creds.length} records shown
             </Typography>
           </Stack>
         </CardContent>
@@ -636,9 +636,9 @@ export default function PasswordsTab({ navigationTarget }) {
         <Card sx={{ mb: 2 }}>
           <CardContent sx={{ p: 2.2 }}>
             <Typography variant="overline" sx={{ color: 'primary.light', letterSpacing: '0.1em' }}>
-              Odak Kayıtlar
+              Focus Records
             </Typography>
-            <Typography variant="h6" sx={{ mb: 1.5 }}>Öne Çıkan Kayıtlar</Typography>
+            <Typography variant="h6" sx={{ mb: 1.5 }}>Highlighted Records</Typography>
             <Grid container spacing={1.5}>
               {aiInsights.account_reviews.map(item => (
                 <Grid key={item.credential_id} size={{ xs: 12, md: 6, xl: 4 }}>
@@ -675,10 +675,10 @@ export default function PasswordsTab({ navigationTarget }) {
                       {item.summary}
                     </Typography>
                     <Typography variant="caption" color="primary.light" sx={{ display: 'block', lineHeight: 1.65, mb: 1.25, overflowWrap: 'anywhere' }}>
-                      Öneri: {item.recommendation}
+                      Recommendation: {item.recommendation}
                     </Typography>
                     <Button size="small" variant="outlined" onClick={() => focusCredential(item.credential_id)}>
-                      Kayda git
+                      Go to record
                     </Button>
                   </Box>
                 </Grid>
@@ -691,12 +691,12 @@ export default function PasswordsTab({ navigationTarget }) {
       {/* Bulk action bar */}
       {selected.size > 0 && (
         <Stack direction="row" spacing={1} alignItems="center" mb={2} sx={{ p: 1.5, bgcolor: 'rgba(99, 216, 204, 0.08)', border: '1px solid', borderColor: 'divider', borderRadius: 3, flexWrap: 'wrap' }}>
-          <Typography variant="body2">{selected.size} seçildi</Typography>
+          <Typography variant="body2">{selected.size} selected</Typography>
           <Button size="small" color="error" variant="contained" onClick={handleBulkDelete} startIcon={<DeleteIcon />}>
-            Toplu Sil
+            Bulk Delete
           </Button>
           <Button size="small" variant="outlined" onClick={() => setBulkCatOpen(true)}>
-            Kategori Değiştir
+            Change Category
           </Button>
         </Stack>
       )}
@@ -706,7 +706,7 @@ export default function PasswordsTab({ navigationTarget }) {
       {loading ? (
         <Box sx={{ textAlign: 'center', py: 5 }}><CircularProgress /></Box>
       ) : creds.length === 0 ? (
-        <Typography color="text.secondary">Henüz kayıt yok.</Typography>
+        <Typography color="text.secondary">No records yet.</Typography>
       ) : (
         creds.map(c => (
           <CredentialRow key={c.id} cred={c}

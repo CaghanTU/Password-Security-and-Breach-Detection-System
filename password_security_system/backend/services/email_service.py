@@ -20,17 +20,17 @@ def send_breach_alert(username: str, new_breaches: list[str]) -> None:
 
     breach_list = "\n".join(f"  • {b}" for b in new_breaches)
     body = (
-        f"Merhaba,\n\n"
-        f"'{username}' hesabı için otomatik ihlal taraması sırasında yeni ihlaller tespit edildi:\n\n"
+        f"Hello,\n\n"
+        f"New breaches were detected during the automated breach scan for the account '{username}':\n\n"
         f"{breach_list}\n\n"
-        f"Lütfen ilgili hesaplarınızın şifrelerini değiştirin.\n\n"
+        f"Please change the passwords for the affected accounts.\n\n"
         f"— Password Security System"
     )
 
     msg = MIMEMultipart()
     msg["From"] = SMTP_USER
     msg["To"] = ALERT_EMAIL
-    msg["Subject"] = f"[Güvenlik Uyarısı] {username} için yeni ihlal bulundu"
+    msg["Subject"] = f"[Security Alert] New breach found for {username}"
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
     try:

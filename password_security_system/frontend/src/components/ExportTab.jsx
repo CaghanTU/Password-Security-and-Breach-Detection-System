@@ -6,7 +6,7 @@ import {
 } from '@mui/material'
 
 const CSV_FORMATS = [
-  { value: 'auto', label: 'Otomatik Algıla' },
+  { value: 'auto', label: 'Auto Detect' },
   { value: 'lastpass', label: 'LastPass CSV' },
   { value: 'bitwarden', label: 'Bitwarden JSON' },
   { value: '1password', label: '1Password CSV' },
@@ -34,7 +34,7 @@ export default function ExportTab() {
       a.download = `vault_export_${Date.now()}.enc.json`
       a.click()
       URL.revokeObjectURL(url)
-      setMsg({ type: 'success', text: 'Vault başarıyla indirildi.' })
+      setMsg({ type: 'success', text: 'Vault downloaded successfully.' })
     } catch (err) {
       setMsg({ type: 'error', text: err.message })
     } finally {
@@ -44,19 +44,19 @@ export default function ExportTab() {
 
   async function doImport() {
     const file = fileRef.current?.files?.[0]
-    if (!file) { setMsg({ type: 'warning', text: 'Lütfen bir dosya seçin.' }); return }
+    if (!file) { setMsg({ type: 'warning', text: 'Please select a file.' }); return }
     setImportLoading(true); setMsg(null)
     try {
       const text = await file.text()
       const payload = JSON.parse(text)
       if (!payload.ciphertext || !payload.iv || !payload.tag) {
-        throw new Error('Geçersiz vault dosyası formatı.')
+        throw new Error('Invalid vault file format.')
       }
       const result = await api.importVault(payload)
       setMsg({
         type: 'success',
-        text: `İçe aktarma tamamlandı: ${result.imported} kayıt eklendi, ${result.skipped} atlandı.${
-          result.errors?.length ? ' Hatalar: ' + result.errors.slice(0, 3).join('; ') : ''
+        text: `Import completed: ${result.imported} records added, ${result.skipped} skipped.${
+          result.errors?.length ? ' Errors: ' + result.errors.slice(0, 3).join('; ') : ''
         }`,
       })
       if (fileRef.current) fileRef.current.value = ''
@@ -69,14 +69,14 @@ export default function ExportTab() {
 
   async function doCSVImport() {
     const file = csvFileRef.current?.files?.[0]
-    if (!file) { setCsvMsg({ type: 'warning', text: 'Lütfen bir dosya seçin.' }); return }
+    if (!file) { setCsvMsg({ type: 'warning', text: 'Please select a file.' }); return }
     setCsvLoading(true); setCsvMsg(null)
     try {
       const result = await api.importCSV(file, csvFormat)
       setCsvMsg({
         type: 'success',
-        text: `İçe aktarma tamamlandı: ${result.imported} kayıt eklendi, ${result.skipped} atlandı.${
-          result.errors?.length ? ' Hatalar: ' + result.errors.slice(0, 3).join('; ') : ''
+        text: `Import completed: ${result.imported} records added, ${result.skipped} skipped.${
+          result.errors?.length ? ' Errors: ' + result.errors.slice(0, 3).join('; ') : ''
         }`,
       })
       setCsvFileName('')
@@ -93,13 +93,13 @@ export default function ExportTab() {
       {/* Export */}
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>📦 Vault Dışa Aktar</Typography>
+          <Typography variant="h6" gutterBottom>📦 Export Vault</Typography>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            Tüm vault AES-256-GCM ile şifrelenmiş olarak indirilir. Düz metin hiçbir zaman diske yazılmaz.
+            The entire vault is downloaded encrypted with AES-256-GCM. Plain text is never written to disk.
           </Typography>
           <Button variant="outlined" fullWidth onClick={doExport} disabled={exportLoading}>
             {exportLoading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
-            ⬇ İndir (.enc.json)
+            ⬇ Download (.enc.json)
           </Button>
         </CardContent>
       </Card>
@@ -107,18 +107,18 @@ export default function ExportTab() {
       {/* Vault import */}
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>📂 Vault İçe Aktar</Typography>
+          <Typography variant="h6" gutterBottom>📂 Import Vault</Typography>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            Daha önce dışa aktardığın <code>.enc.json</code> dosyasını yükle.
-            Şifreler otomatik çözülür ve hesabına eklenir.
+            Upload a previously exported <code>.enc.json</code> file.
+            Passwords are decrypted automatically and added to your account.
           </Typography>
           <Button variant="outlined" component="label" fullWidth sx={{ mb: 1.5 }}>
-            Dosya Seç
+            Choose File
             <input ref={fileRef} type="file" accept=".json,.enc.json" hidden />
           </Button>
           <Button variant="outlined" color="success" fullWidth onClick={doImport} disabled={importLoading}>
             {importLoading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
-            ⬆ Yükle ve İçe Aktar
+            ⬆ Upload and Import
           </Button>
           {msg && <Alert severity={msg.type} sx={{ mt: 2 }}>{msg.text}</Alert>}
         </CardContent>
@@ -127,9 +127,9 @@ export default function ExportTab() {
       {/* CSV/JSON import */}
       <Card>
         <CardContent>
-          <Typography variant="h6" gutterBottom>🔄 Diğer Yöneticilerden İçe Aktar</Typography>
+          <Typography variant="h6" gutterBottom>🔄 Import from Other Managers</Typography>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            LastPass, Bitwarden veya 1Password formatlarından şifreleri aktar.
+            Import passwords from LastPass, Bitwarden, or 1Password formats.
           </Typography>
           <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
             <InputLabel>Format</InputLabel>
@@ -138,7 +138,7 @@ export default function ExportTab() {
             </Select>
           </FormControl>
           <Button variant="outlined" component="label" fullWidth sx={{ mb: 1.5 }}>
-            {csvFileName || 'Dosya Seç (CSV / JSON)'}
+            {csvFileName || 'Choose File (CSV / JSON)'}
             <input
               ref={csvFileRef}
               type="file"
@@ -149,7 +149,7 @@ export default function ExportTab() {
           </Button>
           <Button variant="outlined" color="primary" fullWidth onClick={doCSVImport} disabled={csvLoading}>
             {csvLoading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
-            ⬆ İçe Aktar
+            ⬆ Import
           </Button>
           {csvMsg && <Alert severity={csvMsg.type} sx={{ mt: 2 }}>{csvMsg.text}</Alert>}
         </CardContent>

@@ -63,7 +63,7 @@ export default function AuditTab() {
         all ? '' : dateFrom,
         all ? '' : dateTo,
       )
-      setDeleteMsg({ ok: true, text: `${res.deleted} kayıt silindi.` })
+      setDeleteMsg({ ok: true, text: `${res.deleted} records deleted.` })
       setPage(1)
       load(1)
     } catch (e) {
@@ -83,7 +83,7 @@ export default function AuditTab() {
             variant={viewMode === 'table' ? 'contained' : 'outlined'}
             size="small" startIcon={<TableRowsIcon />}
             onClick={() => setViewMode('table')}
-          >Tablo</Button>
+          >Table</Button>
           <Button
             variant={viewMode === 'timeline' ? 'contained' : 'outlined'}
             size="small" startIcon={<TimelineIcon />}
@@ -96,7 +96,7 @@ export default function AuditTab() {
             startIcon={showDelete ? null : <DeleteIcon />}
             onClick={() => { setShowDelete(v => !v); setDeleteMsg(null); setConfirmAll(false) }}
           >
-            {showDelete ? '✕ İptal' : 'Temizle'}
+            {showDelete ? '✕ Cancel' : 'Clear'}
           </Button>
         </Stack>
       </Stack>
@@ -104,15 +104,15 @@ export default function AuditTab() {
       {/* Delete panel */}
       <Collapse in={showDelete}>
         <Paper variant="outlined" sx={{ p: 2, mb: 3, borderColor: 'error.dark' }}>
-          <Typography fontWeight={600} color="error.main" mb={1}>Kayıt Silme</Typography>
+          <Typography fontWeight={600} color="error.main" mb={1}>Delete Records</Typography>
           <Grid container spacing={2} mb={2}>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField fullWidth size="small" label="Başlangıç tarihi" type="date"
+              <TextField fullWidth size="small" label="Start date" type="date"
                 value={dateFrom} onChange={e => setDateFrom(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField fullWidth size="small" label="Bitiş tarihi" type="date"
+              <TextField fullWidth size="small" label="End date" type="date"
                 value={dateTo} onChange={e => setDateTo(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }} />
             </Grid>
@@ -123,20 +123,20 @@ export default function AuditTab() {
               onClick={() => handleDelete(false)}
             >
               {deleting ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
-              🗑 Tarih Aralığını Sil
+              Delete Date Range
             </Button>
             {!confirmAll ? (
               <Button variant="outlined" color="error" size="small" onClick={() => setConfirmAll(true)}>
-                Tümünü Sil
+                Delete All
               </Button>
             ) : (
               <>
-                <Typography variant="caption" color="error.main" alignSelf="center">Emin misin?</Typography>
+                <Typography variant="caption" color="error.main" alignSelf="center">Are you sure?</Typography>
                 <Button variant="contained" color="error" size="small" disabled={deleting} onClick={() => handleDelete(true)}>
                   {deleting ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
-                  Evet, Tümünü Sil
+                  Yes, Delete All
                 </Button>
-                <Button variant="outlined" size="small" onClick={() => setConfirmAll(false)}>Hayır</Button>
+                <Button variant="outlined" size="small" onClick={() => setConfirmAll(false)}>No</Button>
               </>
             )}
           </Stack>
@@ -151,11 +151,11 @@ export default function AuditTab() {
       {loading ? (
         <Box sx={{ textAlign: 'center', py: 5 }}><CircularProgress /></Box>
       ) : !data || !data.items.length ? (
-        <Typography color="text.secondary">Henüz kayıt yok.</Typography>
+        <Typography color="text.secondary">No records yet.</Typography>
       ) : (
         <>
           <Typography variant="body2" color="text.secondary" mb={1}>
-            Sayfa {data.page} — Toplam {data.total} kayıt
+            Page {data.page} — Total {data.total} records
           </Typography>
 
           {viewMode === 'table' ? (
@@ -164,9 +164,9 @@ export default function AuditTab() {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Tarih / Saat</TableCell>
-                      <TableCell>Aksiyon</TableCell>
-                      <TableCell>IP Adresi</TableCell>
+                      <TableCell>Date / Time</TableCell>
+                      <TableCell>Action</TableCell>
+                      <TableCell>IP Address</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -174,7 +174,7 @@ export default function AuditTab() {
                       <TableRow key={e.id} hover>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
-                            {new Date(e.created_at).toLocaleString('tr-TR')}
+                            {new Date(e.created_at).toLocaleString('en-US')}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -196,7 +196,7 @@ export default function AuditTab() {
               {data.items.map((e, idx) => (
                 <TimelineItem key={e.id}>
                   <TimelineOppositeContent sx={{ flex: 0.25, fontSize: '0.75rem', color: 'text.secondary', py: 1.5 }}>
-                    {new Date(e.created_at).toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                    {new Date(e.created_at).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                   </TimelineOppositeContent>
                   <TimelineSeparator>
                     <TimelineDot color={ACTION_DOT_COLORS[e.action] ?? 'grey'} sx={{ my: 1 }} />
@@ -217,10 +217,10 @@ export default function AuditTab() {
 
           <Stack direction="row" spacing={1} mt={2}>
             <Button variant="outlined" size="small" onClick={() => changePage(-1)} disabled={page <= 1}>
-              ← Önceki
+              ← Previous
             </Button>
             <Button variant="outlined" size="small" onClick={() => changePage(1)} disabled={data.items.length < 20}>
-              Sonraki →
+              Next →
             </Button>
           </Stack>
         </>

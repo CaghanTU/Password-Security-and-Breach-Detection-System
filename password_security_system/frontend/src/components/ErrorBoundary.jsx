@@ -16,7 +16,7 @@ export default class ErrorBoundary extends Component {
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
           <Paper sx={{ maxWidth: 600, p: 4, border: '1px solid', borderColor: 'error.main' }}>
-            <Typography variant="h5" color="error" gutterBottom>Uygulama Hatası</Typography>
+            <Typography variant="h5" color="error" gutterBottom>Application Error</Typography>
             <Typography
               component="pre"
               variant="body2"
@@ -28,7 +28,7 @@ export default class ErrorBoundary extends Component {
               {this.state.error.stack}
             </Typography>
             <Button variant="outlined" color="error" sx={{ mt: 3 }} onClick={() => window.location.reload()}>
-              Yenile
+              Reload
             </Button>
           </Paper>
         </Box>

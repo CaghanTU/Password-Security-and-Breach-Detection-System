@@ -43,4 +43,4 @@ def mark_all_read(
         BreachAlert.is_read == False,
     ).update({"is_read": True})
     db.commit()
-    return {"message": "Tüm bildirimler okundu olarak işaretlendi"}
+    return {"message": "All notifications were marked as read"}

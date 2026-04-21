@@ -63,7 +63,7 @@ def import_vault(db: Session, user_id: int, key: bytes, ciphertext: str, iv: str
         plaintext = decrypt(ciphertext, iv, tag, key)
         vault = json.loads(plaintext)
     except Exception as exc:
-        raise ValueError(f"Vault çözülemedi: {exc}")
+        raise ValueError(f"Vault could not be decrypted: {exc}")
 
     imported = 0
     skipped = 0
@@ -90,4 +90,3 @@ def import_vault(db: Session, user_id: int, key: bytes, ciphertext: str, iv: str
 
     audit_service.log(db, user_id, "IMPORT", ip)
     return {"imported": imported, "skipped": skipped, "errors": errors}
-

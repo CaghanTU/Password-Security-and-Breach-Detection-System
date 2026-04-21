@@ -19,7 +19,7 @@ const DATA_CLASS_META = {
 }
 
 function DataTag({ label }) {
-  const meta = DATA_CLASS_META[label] || { color: '#6c757d', icon: 'VERI' }
+  const meta = DATA_CLASS_META[label] || { color: '#6c757d', icon: 'DATA' }
   return (
     <Box
       component="span"
@@ -44,8 +44,8 @@ function BreachCard({ b, defaultOpen }) {
   const [open, setOpen] = useState(defaultOpen)
 
   const dateStr = b.breach_date
-    ? new Date(b.breach_date + 'T00:00:00').toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' })
-    : 'Tarih bilinmiyor'
+    ? new Date(b.breach_date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+    : 'Date unknown'
 
   const logoUrl = b.logo_path || null
   const plainDesc = b.description
@@ -78,17 +78,17 @@ function BreachCard({ b, defaultOpen }) {
             <Typography variant="caption" color="text.secondary">{dateStr}</Typography>
             {b.pwn_count > 0 && (
               <Box component="span" sx={{ px: 0.75, py: 0.25, borderRadius: 1, fontSize: '0.75rem', background: '#dc354522', color: '#dc3545', border: '1px solid #dc354555' }}>
-                {b.pwn_count.toLocaleString()} hesap
+                {b.pwn_count.toLocaleString()} accounts
               </Box>
             )}
             {b.is_sensitive && (
               <Box component="span" sx={{ px: 0.75, py: 0.25, borderRadius: 1, fontSize: '0.75rem', background: '#6f42c122', color: '#c070ff', border: '1px solid #6f42c155' }}>
-                hassas
+                sensitive
               </Box>
             )}
             {b.is_verified === false && (
               <Box component="span" sx={{ px: 0.75, py: 0.25, borderRadius: 1, fontSize: '0.75rem', color: 'text.secondary', border: '1px solid', borderColor: 'divider' }}>
-                doğrulanmamış
+                unverified
               </Box>
             )}
           </Stack>
@@ -98,11 +98,11 @@ function BreachCard({ b, defaultOpen }) {
         <Box sx={{ display: { xs: 'none', md: 'flex' }, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 260 }}>
           {b.data_classes.slice(0, 4).map(dc => <DataTag key={dc} label={dc} />)}
           {b.data_classes.length > 4 && (
-            <Typography variant="caption" color="text.secondary">+{b.data_classes.length - 4} daha</Typography>
+            <Typography variant="caption" color="text.secondary">+{b.data_classes.length - 4} more</Typography>
           )}
         </Box>
 
-        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>{open ? 'Kapat' : 'Aç'}</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>{open ? 'Close' : 'Open'}</Typography>
       </Box>
 
       {/* Expanded detail */}
@@ -110,7 +110,7 @@ function BreachCard({ b, defaultOpen }) {
         <Box sx={{ px: 3, pb: 3, borderTop: 1, borderColor: 'divider' }}>
           <Box mt={2}>
             <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ letterSpacing: '0.05em' }}>
-              SIZDIRILAN VERİLER
+              EXPOSED DATA
             </Typography>
             <Box mt={0.5}>{b.data_classes.map(dc => <DataTag key={dc} label={dc} />)}</Box>
           </Box>
@@ -118,16 +118,16 @@ function BreachCard({ b, defaultOpen }) {
           {plainDesc && (
             <Box mt={2}>
               <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ letterSpacing: '0.05em' }}>
-                OLAY AÇIKLAMASI
+                INCIDENT DESCRIPTION
               </Typography>
               <Typography variant="body2" color="text.secondary" mt={0.5} sx={{ lineHeight: 1.6 }}>{plainDesc}</Typography>
             </Box>
           )}
 
           <Stack direction="row" flexWrap="wrap" spacing={2} mt={2}>
-            {b.domain && <Typography variant="caption" color="text.secondary">Alan adı: {b.domain}</Typography>}
-            {b.breach_date && <Typography variant="caption" color="text.secondary">Tarih: {dateStr}</Typography>}
-            {b.pwn_count > 0 && <Typography variant="caption" color="text.secondary">{b.pwn_count.toLocaleString()} hesap etkilendi</Typography>}
+            {b.domain && <Typography variant="caption" color="text.secondary">Domain: {b.domain}</Typography>}
+            {b.breach_date && <Typography variant="caption" color="text.secondary">Date: {dateStr}</Typography>}
+            {b.pwn_count > 0 && <Typography variant="caption" color="text.secondary">{b.pwn_count.toLocaleString()} accounts affected</Typography>}
           </Stack>
         </Box>
       )}
@@ -145,7 +145,7 @@ function BreachHistory({ result }) {
   if (!breaches || !Array.isArray(breaches) || breaches.length === 0) {
     return (
       <Alert severity="success" sx={{ mt: 3 }}>
-        <strong>{email}</strong> için bilinen ihlallerde kayıt bulunamadı.
+        No known breaches were found for <strong>{email}</strong>.
       </Alert>
     )
   }
@@ -156,16 +156,16 @@ function BreachHistory({ result }) {
     <Box mt={3}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Box>
-          <Typography variant="h6" mb={0}>İhlal Geçmişin</Typography>
-          <Typography variant="caption" color="text.secondary">{email} · {breaches.length} ihlal tespit edildi</Typography>
+          <Typography variant="h6" mb={0}>Your Breach History</Typography>
+          <Typography variant="caption" color="text.secondary">{email} · {breaches.length} breaches detected</Typography>
         </Box>
-        <Chip label={`${breaches.length} ihlal`} color="error" />
+        <Chip label={`${breaches.length} breaches`} color="error" />
       </Box>
 
       <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', px: 2, pb: 1, gap: 1.5, borderBottom: 1, borderColor: 'divider' }}>
         <Box sx={{ width: 48, flexShrink: 0 }} />
-        <Typography variant="caption" fontWeight={700} color="text.secondary" flexGrow={1}>İhlal</Typography>
-        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ width: 260, textAlign: 'right' }}>Sızdırılan Veriler</Typography>
+        <Typography variant="caption" fontWeight={700} color="text.secondary" flexGrow={1}>Breach</Typography>
+        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ width: 260, textAlign: 'right' }}>Exposed Data</Typography>
         <Box sx={{ width: 24 }} />
       </Box>
 
@@ -209,12 +209,12 @@ export default function BreachTab() {
         <Grid size={{ xs: 12, md: 7 }}>
           <Card>
             <CardContent>
-              <Typography variant="h6" mb={2}>E-posta ihlal kontrolü</Typography>
+              <Typography variant="h6" mb={2}>Email breach check</Typography>
               <Stack direction="row" spacing={1} component="form" onSubmit={checkEmail}>
                 <TextField fullWidth type="email" required placeholder="ornek@email.com"
                   value={email} onChange={e => setEmail(e.target.value)} size="small" />
                 <Button variant="contained" color="warning" type="submit" disabled={emailLoading} sx={{ flexShrink: 0 }}>
-                  {emailLoading ? <CircularProgress size={18} /> : 'Tara'}
+                  {emailLoading ? <CircularProgress size={18} /> : 'Scan'}
                 </Button>
               </Stack>
               {emailError && <Alert severity="error" sx={{ mt: 2 }}>{emailError}</Alert>}
@@ -227,22 +227,22 @@ export default function BreachTab() {
           <Card>
             <CardContent>
               <Typography variant="h6" mb={2}>
-                Şifre kontrolü{' '}
-                <Typography component="span" variant="body2" color="text.secondary">(k-anonimlik)</Typography>
+                Password check{' '}
+                <Typography component="span" variant="body2" color="text.secondary">(k-anonymity)</Typography>
               </Typography>
               <Stack direction="row" spacing={1} component="form" onSubmit={checkPassword}>
-                <TextField fullWidth type="password" required placeholder="Şifrenizi girin"
+                <TextField fullWidth type="password" required placeholder="Enter your password"
                   value={password} onChange={e => setPassword(e.target.value)} size="small" />
                 <Button variant="contained" color="warning" type="submit" disabled={pwLoading} sx={{ flexShrink: 0 }}>
-                  {pwLoading ? <CircularProgress size={18} /> : 'Tara'}
+                  {pwLoading ? <CircularProgress size={18} /> : 'Scan'}
                 </Button>
               </Stack>
               {pwError && <Alert severity="error" sx={{ mt: 2 }}>{pwError}</Alert>}
               {pwResult && (
                 <Alert severity={pwResult.pwned ? 'error' : 'success'} sx={{ mt: 2 }}>
                   {pwResult.pwned
-                    ? <>Bu şifre <strong>{pwResult.count.toLocaleString()}</strong> kez ihlal edilmiş.</>
-                    : 'Bilinen ihlallerde bu şifre bulunamadı.'}
+                    ? <>This password has been exposed <strong>{pwResult.count.toLocaleString()}</strong> times.</>
+                    : 'This password was not found in known breaches.'}
                 </Alert>
               )}
             </CardContent>

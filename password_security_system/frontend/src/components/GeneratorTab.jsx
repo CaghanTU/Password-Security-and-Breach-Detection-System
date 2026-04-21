@@ -50,15 +50,15 @@ export default function GeneratorTab() {
   return (
     <Card sx={{ maxWidth: 560 }}>
       <CardContent sx={{ p: 3 }}>
-        <Typography variant="h6" mb={3}>Güvenli Şifre Üret</Typography>
+        <Typography variant="h6" mb={3}>Generate Secure Password</Typography>
 
         {/* Uzunluk */}
         <Box mb={3}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography variant="body2">Rastgele bölüm uzunluğu</Typography>
+            <Typography variant="body2">Random section length</Typography>
             <Typography variant="body2" fontWeight={700}>
-              {opts.length} karakter
-              {(prefixLen || suffixLen) ? ` (core: ${coreLen}, toplam: ${prefixLen + coreLen + suffixLen})` : ''}
+              {opts.length} characters
+              {(prefixLen || suffixLen) ? ` (core: ${coreLen}, total: ${prefixLen + coreLen + suffixLen})` : ''}
             </Typography>
           </Box>
           <Slider min={4} max={128} value={opts.length} onChange={(_, v) => set('length')(v)} />
@@ -67,10 +67,10 @@ export default function GeneratorTab() {
         {/* Karakter seti */}
         <Grid container spacing={1} mb={2}>
           {[
-            ['use_upper', 'Büyük Harf (A-Z)'],
-            ['use_lower', 'Küçük Harf (a-z)'],
-            ['use_digits', 'Rakam (0-9)'],
-            ['use_symbols', 'Sembol (!@#...)'],
+            ['use_upper', 'Uppercase (A-Z)'],
+            ['use_lower', 'Lowercase (a-z)'],
+            ['use_digits', 'Digits (0-9)'],
+            ['use_symbols', 'Symbols (!@#...)'],
           ].map(([k, label]) => (
             <Grid size={{ xs: 6 }} key={k}>
               <FormControlLabel
@@ -81,21 +81,21 @@ export default function GeneratorTab() {
           ))}
         </Grid>
 
-        {/* Gelişmiş toggle */}
+        {/* Advanced options toggle */}
         <Button variant="outlined" size="small" onClick={() => setShowAdvanced(v => !v)} sx={{ mb: 2 }}>
-          {showAdvanced ? 'Gelişmiş seçenekleri gizle' : 'Gelişmiş seçenekler'}
+          {showAdvanced ? 'Hide advanced options' : 'Advanced options'}
         </Button>
 
         <Collapse in={showAdvanced}>
           <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
             <Grid container spacing={2} mb={2}>
               <Grid size={{ xs: 6 }}>
-                <Typography variant="caption">Min. Rakam Sayısı: <strong>{opts.min_digits}</strong></Typography>
+                <Typography variant="caption">Min. Digit Count: <strong>{opts.min_digits}</strong></Typography>
                 <Slider min={0} max={Math.min(20, opts.length)} value={opts.min_digits}
                   onChange={(_, v) => set('min_digits')(v)} size="small" />
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <Typography variant="caption">Min. Sembol Sayısı: <strong>{opts.min_symbols}</strong></Typography>
+                <Typography variant="caption">Min. Symbol Count: <strong>{opts.min_symbols}</strong></Typography>
                 <Slider min={0} max={Math.min(20, opts.length)} value={opts.min_symbols}
                   onChange={(_, v) => set('min_symbols')(v)} size="small" />
               </Grid>
@@ -103,19 +103,19 @@ export default function GeneratorTab() {
 
             <Grid container spacing={2} mb={2}>
               <Grid size={{ xs: 6 }}>
-                <TextField fullWidth size="small" label="Önek (prefix)" placeholder="örn: MyApp-"
+                <TextField fullWidth size="small" label="Prefix" placeholder="e.g. MyApp-"
                   value={opts.prefix} inputProps={{ maxLength: 32 }}
                   onChange={e => set('prefix')(e.target.value)} />
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <TextField fullWidth size="small" label="Sonek (suffix)" placeholder="örn: -2026"
+                <TextField fullWidth size="small" label="Suffix" placeholder="e.g. -2026"
                   value={opts.suffix} inputProps={{ maxLength: 32 }}
                   onChange={e => set('suffix')(e.target.value)} />
               </Grid>
             </Grid>
 
-            <TextField fullWidth size="small" label="Ekstra karakterler (alfabeye eklenir)"
-              placeholder="örn: ₺€£ veya özel semboller"
+            <TextField fullWidth size="small" label="Extra characters (added to charset)"
+              placeholder="e.g. ₺€£ or custom symbols"
               value={opts.custom_chars} inputProps={{ maxLength: 64 }}
               onChange={e => set('custom_chars')(e.target.value)} />
           </Paper>
@@ -123,13 +123,13 @@ export default function GeneratorTab() {
 
         <Button variant="contained" color="success" fullWidth onClick={generate} disabled={loading}>
           {loading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
-          Parola üret
+          Generate password
         </Button>
 
         {mandatoryConflict && (
           <Alert severity="warning" sx={{ mt: 2 }}>
-            Min. rakam + sembol ({opts.min_digits + opts.min_symbols}) core uzunluğunu ({coreLen}) aşıyor.
-            Oranlar otomatik küçültülecek; büyük/küçük harf için de yer bırakılacak.
+            Min. digits + symbols ({opts.min_digits + opts.min_symbols}) exceeds the core length ({coreLen}).
+            Values will be reduced automatically so space remains for uppercase/lowercase characters as well.
           </Alert>
         )}
 
@@ -139,7 +139,7 @@ export default function GeneratorTab() {
           <Box mt={3}>
             <Paper
               onClick={copy}
-              title="Kopyalamak için tıkla"
+              title="Click to copy"
               sx={{
                 p: 2, fontFamily: 'monospace', fontWeight: 700, cursor: 'pointer',
                 wordBreak: 'break-all', fontSize: '1rem', color: 'success.light',
@@ -156,9 +156,9 @@ export default function GeneratorTab() {
               <Typography variant="caption" color="text.secondary">
                 Toplam uzunluk: <strong>{result.password.length}</strong>
               </Typography>
-              {copied && <Chip label="Kopyalandı" size="small" color="info" />}
+              {copied && <Chip label="Copied" size="small" color="info" />}
             </Stack>
-            <Typography variant="caption" color="text.secondary">Şifreye tıklayarak panoya kopyala</Typography>
+            <Typography variant="caption" color="text.secondary">Click the password to copy it to the clipboard</Typography>
           </Box>
         )}
       </CardContent>

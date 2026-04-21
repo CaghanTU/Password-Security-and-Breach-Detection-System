@@ -68,7 +68,7 @@ export default function TwoFATab({ navigationTarget }) {
     setMsg(null); setLoading(true)
     try {
       await api.verify2fa(code)
-      setMsg({ type: 'success', text: 'Kod doğrulandı. 2FA aktif durumda.' })
+      setMsg({ type: 'success', text: 'Code verified. 2FA is now active.' })
     } catch (err) {
       setMsg({ type: 'error', text: err.message })
     } finally {
@@ -82,7 +82,7 @@ export default function TwoFATab({ navigationTarget }) {
     try {
       const data = await api.regenerateRecoveryCodes()
       setRecoveryCodes(data.codes)
-      setMsg({ type: 'success', text: 'Yeni recovery code seti oluşturuldu. Kodları güvenli bir yerde sakla.' })
+      setMsg({ type: 'success', text: 'A new set of recovery codes was created. Store them somewhere safe.' })
       await loadRecoverySummary()
     } catch (err) {
       setMsg({ type: 'error', text: err.message })
@@ -102,14 +102,14 @@ export default function TwoFATab({ navigationTarget }) {
       <Grid size={{ xs: 12, md: 5 }} ref={totpSectionRef}>
         <Card sx={{ height: '100%' }}>
           <CardContent sx={{ p: 4 }}>
-            <Typography variant="h6" gutterBottom>İki Faktörlü Kimlik Doğrulama</Typography>
+            <Typography variant="h6" gutterBottom>Two-Factor Authentication</Typography>
             <Typography variant="body2" color="text.secondary" mb={3}>
-              QR kodu Google Authenticator veya Authy ile tarayıp hesabını ikinci faktörle koru.
+              Scan the QR code with Google Authenticator or Authy to protect your account with a second factor.
             </Typography>
 
             <Button variant="contained" onClick={setup} disabled={loading} sx={{ mb: 3 }}>
               {loading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
-              QR Kod Oluştur
+              Generate QR Code
             </Button>
 
             {qr && (
@@ -121,18 +121,18 @@ export default function TwoFATab({ navigationTarget }) {
                   sx={{ maxWidth: 220, width: '100%', borderRadius: 1, mb: 1 }}
                 />
                 <Typography variant="body2" color="text.secondary">
-                  Manuel giriş için secret:{' '}
+                  Secret for manual entry:{' '}
                   <Box component="code" sx={{ color: 'info.main' }}>{secret}</Box>
                 </Typography>
               </Box>
             )}
 
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" mb={2}>Kodu Doğrula</Typography>
+            <Typography variant="subtitle2" mb={2}>Verify Code</Typography>
             <Box component="form" onSubmit={verify}>
               <TextField
                 fullWidth
-                placeholder="6 haneli kod"
+                placeholder="6-digit code"
                 inputProps={{ maxLength: 6, style: { textAlign: 'center' } }}
                 value={code}
                 onChange={e => setCode(e.target.value)}
@@ -140,7 +140,7 @@ export default function TwoFATab({ navigationTarget }) {
               />
               <Button type="submit" variant="contained" color="success" fullWidth disabled={loading}>
                 {loading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
-                Doğrula
+                Verify
               </Button>
             </Box>
 
@@ -156,13 +156,13 @@ export default function TwoFATab({ navigationTarget }) {
               <Box>
                 <Typography variant="h6">Recovery Codes</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Authenticator erişimin kaybolursa hesabına bunlarla dönebilirsin.
+                  If you lose access to your authenticator app, you can use these to get back into your account.
                 </Typography>
               </Box>
               {recoverySummary && (
                 <Chip
                   color={severity}
-                  label={recoverySummary.has_codes ? `${recoverySummary.remaining} kod kaldı` : 'Kod yok'}
+                  label={recoverySummary.has_codes ? `${recoverySummary.remaining} codes left` : 'No codes'}
                 />
               )}
             </Stack>
@@ -170,8 +170,8 @@ export default function TwoFATab({ navigationTarget }) {
             {recoverySummary && (
               <Alert severity={severity} sx={{ mb: 2 }}>
                 {recoverySummary.has_codes
-                  ? `Toplam ${recoverySummary.total} koddan ${recoverySummary.remaining} tanesi kullanılabilir durumda.`
-                  : 'Henüz recovery code oluşturulmamış. En az bir set üretmen iyi olur.'}
+                  ? `${recoverySummary.remaining} of ${recoverySummary.total} total codes are still usable.`
+                  : 'No recovery codes have been generated yet. It is a good idea to create at least one set.'}
               </Alert>
             )}
 
@@ -183,17 +183,17 @@ export default function TwoFATab({ navigationTarget }) {
                 disabled={recoveryLoading}
               >
                 {recoveryLoading ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
-                Recovery Code Üret / Yenile
+                Generate / Refresh Recovery Codes
               </Button>
               <Button variant="outlined" onClick={loadRecoverySummary} disabled={recoveryLoading}>
-                Durumu Yenile
+                Refresh Status
               </Button>
             </Stack>
 
             {recoveryCodes.length > 0 && (
               <Box>
                 <Alert severity="warning" sx={{ mb: 2 }}>
-                  Bu kodlar yalnızca şimdi tam olarak gösteriliyor. Kopyalayıp güvenli bir yerde sakla.
+                  These codes are shown in full only now. Copy them and store them somewhere safe.
                 </Alert>
                 <Grid container spacing={1} mb={2}>
                   {recoveryCodes.map(codeValue => (
@@ -218,10 +218,10 @@ export default function TwoFATab({ navigationTarget }) {
                 </Grid>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
                   <Button variant="outlined" onClick={() => navigator.clipboard.writeText(recoveryCodes.join('\n'))}>
-                    Tümünü Kopyala
+                    Copy All
                   </Button>
                   <Button variant="outlined" onClick={() => downloadRecoveryCodes(recoveryCodes)}>
-                    TXT Olarak İndir
+                    Download as TXT
                   </Button>
                 </Stack>
               </Box>

@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
       await api.getScore()
       setLoggedIn(true)
     } catch {
-      // 401 → oturum yok; diğer hatalar (network vb.) → yine oturum yok
+      // 401 means no session; for other errors (network etc.) treat it as no session as well
       setLoggedIn(false)
     }
   }, [])

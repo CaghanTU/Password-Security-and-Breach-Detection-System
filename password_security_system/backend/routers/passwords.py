@@ -172,7 +172,7 @@ def set_totp_secret(
         totp = pyotp.TOTP(body.secret)
         code = totp.now()
     except Exception:
-        raise HTTPException(status_code=400, detail="Geçersiz TOTP secret formatı")
+        raise HTTPException(status_code=400, detail="Invalid TOTP secret format")
 
     cred.totp_secret = body.secret
     db.commit()
@@ -196,7 +196,7 @@ def get_totp_code(
     if not cred:
         raise HTTPException(status_code=404, detail="Credential not found")
     if not cred.totp_secret:
-        raise HTTPException(status_code=404, detail="Bu credential için TOTP ayarlanmamış")
+        raise HTTPException(status_code=404, detail="TOTP is not configured for this credential")
 
     import time as _time
     totp = pyotp.TOTP(cred.totp_secret)
@@ -220,4 +220,4 @@ def remove_totp_secret(
         raise HTTPException(status_code=404, detail="Credential not found")
     cred.totp_secret = None
     db.commit()
-    return {"message": "TOTP kaldırıldı"}
+    return {"message": "TOTP removed"}

@@ -26,14 +26,14 @@ import { useAuth } from '../context/auth-context'
 import { api } from '../services/api'
 
 const TABS = [
-  { id: 'actions', label: 'Aksiyon', title: 'Öncelikli güvenlik işleri', description: 'En kritik açıkları önce kapatmak için sıralanmış iş listesi.', icon: TrackChangesRoundedIcon, Component: ActionCenterTab },
-  { id: 'passwords', label: 'Kasa', title: 'Parola kasası', description: 'Kayıtları düzenle, ihlalleri incele ve ilgili hesabı doğrudan güncelle.', icon: PasswordRoundedIcon, Component: PasswordsTab },
-  { id: 'breach', label: 'Tarama', title: 'İhlal taraması', description: 'E-posta ve parola için ihlal geçmişini ayrı ayrı kontrol et.', icon: TravelExploreRoundedIcon, Component: BreachTab },
-  { id: 'generator', label: 'Üretici', title: 'Güçlü parola üretici', description: 'Daha uzun, daha benzersiz ve politikaya uygun parolalar oluştur.', icon: AutoAwesomeRoundedIcon, Component: GeneratorTab },
-  { id: 'score', label: 'Skor', title: 'Risk görünümü', description: 'Skorun neden bu seviyede olduğunu ve en hızlı iyileştirmeleri gör.', icon: InsightsRoundedIcon, Component: ScoreTab },
-  { id: 'export', label: 'Aktarım', title: 'Veri aktarımı', description: 'İçe aktar, dışa aktar ve rapor akışlarını tek yerden yönet.', icon: FileDownloadRoundedIcon, Component: ExportTab },
-  { id: 'audit', label: 'Denetim', title: 'İz kayıtları', description: 'Sistemde hangi aksiyonların ne zaman gerçekleştiğini takip et.', icon: FactCheckRoundedIcon, Component: AuditTab },
-  { id: 'twofa', label: '2FA', title: 'İkinci faktör merkezi', description: 'Authenticator ve recovery code akışlarını güvenli biçimde yönet.', icon: VerifiedUserRoundedIcon, Component: TwoFATab },
+  { id: 'actions', label: 'Actions', title: 'Priority security work', description: 'A ranked worklist that helps you close the most critical gaps first.', icon: TrackChangesRoundedIcon, Component: ActionCenterTab },
+  { id: 'passwords', label: 'Vault', title: 'Password vault', description: 'Edit records, review breaches, and update the related account directly.', icon: PasswordRoundedIcon, Component: PasswordsTab },
+  { id: 'breach', label: 'Scan', title: 'Breach scan', description: 'Check breach history separately for email and password.', icon: TravelExploreRoundedIcon, Component: BreachTab },
+  { id: 'generator', label: 'Generator', title: 'Strong password generator', description: 'Create longer, more unique, and policy-friendly passwords.', icon: AutoAwesomeRoundedIcon, Component: GeneratorTab },
+  { id: 'score', label: 'Score', title: 'Risk outlook', description: 'See why your score is at this level and what improves it fastest.', icon: InsightsRoundedIcon, Component: ScoreTab },
+  { id: 'export', label: 'Transfer', title: 'Data transfer', description: 'Manage import, export, and report flows from one place.', icon: FileDownloadRoundedIcon, Component: ExportTab },
+  { id: 'audit', label: 'Audit', title: 'Activity logs', description: 'Track which actions happened in the system and when.', icon: FactCheckRoundedIcon, Component: AuditTab },
+  { id: 'twofa', label: '2FA', title: 'Second factor center', description: 'Manage authenticator and recovery code flows securely.', icon: VerifiedUserRoundedIcon, Component: TwoFATab },
 ]
 
 function HeroMetric({ label, value, tone = 'default' }) {
@@ -167,7 +167,7 @@ export default function DashboardPage() {
                 Password Security System
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 680, lineHeight: 1.7 }}>
-                Parolaları sadece saklayan bir kasa değil; ihlali, tekrar kullanımı, 2FA durumunu ve risk skorunu aynı panelde yöneten bir güvenlik çalışma alanı.
+                This is not just a vault that stores passwords; it is a security workspace that manages breaches, reuse, 2FA status, and risk score from the same panel.
               </Typography>
             </Box>
 
@@ -179,19 +179,19 @@ export default function DashboardPage() {
                 onClick={logout}
                 sx={{ alignSelf: { xs: 'stretch', lg: 'flex-end' } }}
               >
-                Oturumu Kapat
+                Sign Out
               </Button>
               <Typography variant="caption" color="text.secondary">
-                Aktif görünüm: {activeTab.title}
+                Active view: {activeTab.title}
               </Typography>
             </Stack>
           </Stack>
 
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25} mt={3} flexWrap="wrap">
-            <HeroMetric label="Anlık skor" value={heroStats.score} tone="score" />
-            <HeroMetric label="Kritik bulgu" value={heroStats.critical} tone="danger" />
-            <HeroMetric label="Açık aksiyon" value={heroStats.openActions} tone="warning" />
-            <HeroMetric label="Açık takip vakası" value={heroStats.unresolvedCases} tone="info" />
+            <HeroMetric label="Current score" value={heroStats.score} tone="score" />
+            <HeroMetric label="Critical findings" value={heroStats.critical} tone="danger" />
+            <HeroMetric label="Open actions" value={heroStats.openActions} tone="warning" />
+            <HeroMetric label="Open follow-up cases" value={heroStats.unresolvedCases} tone="info" />
           </Stack>
 
           <Stack spacing={1.5} mt={3}>
@@ -199,10 +199,10 @@ export default function DashboardPage() {
               <Alert
                 severity="error"
                 icon={<NotificationsActiveIcon />}
-                action={<Button color="error" size="small" onClick={dismissAlerts}>Okundu</Button>}
+                action={<Button color="error" size="small" onClick={dismissAlerts}>Mark read</Button>}
               >
-                <strong>{alerts.length} yeni ihlal bildirimi:</strong> {alerts[0].message}
-                {alerts.length > 1 ? ` ve ${alerts.length - 1} diğer kayıt.` : ''}
+                <strong>{alerts.length} new breach notifications:</strong> {alerts[0].message}
+                {alerts.length > 1 ? ` and ${alerts.length - 1} other records.` : ''}
               </Alert>
             )}
 
@@ -212,7 +212,7 @@ export default function DashboardPage() {
                 icon={<WarningAmberRoundedIcon />}
                 onClose={() => setScoreWarning(null)}
               >
-                {scoreWarning.critical} önemli risk kalemi tespit edildi. Önce Aksiyon veya Skor sekmesinden başlayın.
+                {scoreWarning.critical} important risk items were detected. Start with the Actions or Score tab first.
               </Alert>
             )}
           </Stack>

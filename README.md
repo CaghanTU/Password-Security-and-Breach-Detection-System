@@ -1,57 +1,57 @@
 # Password Security System
 
-Kapsamlı ve güvenli bir parola yönetim, analiz ve izleme sistemi. Bu proje, kullanıcıların parolalarını güvenli bir şekilde saklamalarını sağlamanın yanı sıra güçlü parola üretimi, sızıntı kontrolü, güvenlik puanlaması ve denetim kayıtları gibi gelişmiş güvenlik özellikleri sunmaktadır.
+A comprehensive and secure password management, analysis, and monitoring system. In addition to storing passwords safely, this project provides advanced security capabilities such as strong password generation, breach checks, security scoring, and audit logging.
 
-## Özellikler
+## Features
 
-- **Parola Yönetimi**: Parolaların güvenli (kriptografik) olarak saklanması ve yönetilmesi (Oluşturma, Görüntüleme, Güncelleme, Silme).
-- **Parola Güvenlik Puanlaması**: Parolalarınızın güçlü olup olmadığını test eden gelişmiş bir skorlama mekanizması.
-- **Veri Sızıntısı (Breach) Kontrolü**: Parolalarınızın bilinen veri sızıntılarında (data breaches) yer alıp almadığını kontrol etme özelliği.
-- **İki Faktörlü Doğrulama (2FA)**: Kullanıcı hesapları için ekstra güvenlik katmanı.
-- **Parola Üretici (Generator)**: Belirlenen güvenlik kurallarına (uzunluk, özel karakterler, rakamlar vb.) uygun, kırılması zor ve rastgele parolalar oluşturma.
-- **Denetim Kayıtları (Audit Logs)**: Kullanıcı ve sistem işlemlerinin takip edilebilir, detaylı loglanması.
-- **İçe/Dışa Aktarma (Import/Export)**: Parola verilerini güvenli bir şekilde yedekleme veya başka bir platformdan taşıma.
+- **Password Management**: Securely store and manage passwords using cryptographic protection (create, view, update, delete).
+- **Password Security Scoring**: An advanced scoring mechanism that evaluates password strength.
+- **Breach Checking**: Check whether your passwords appear in known data breaches.
+- **Two-Factor Authentication (2FA)**: An extra security layer for user accounts.
+- **Password Generator**: Create strong, random passwords based on configurable security rules such as length, symbols, and digits.
+- **Audit Logs**: Detailed, traceable logging for user and system activity.
+- **Import/Export**: Securely back up password data or migrate it from other platforms.
 
-## Teknoloji Yığını (Tech Stack)
+## Tech Stack
 
 **Backend:**
-- Python & [FastAPI](https://fastapi.tiangolo.com/) (Yüksek performanslı, hızlı API geliştirme)
-- Güvenlik: Pydantic (Validasyon ve şemalar), Kriptografi ve Hash (Uçtan uca şifreleme)
-- Modüler mimari (Routers, Services, Models, Schemas)
+- Python & [FastAPI](https://fastapi.tiangolo.com/) for high-performance API development
+- Security: Pydantic for validation/schemas, cryptography and hashing for end-to-end protection
+- Modular architecture (routers, services, models, schemas)
 
 **Frontend:**
-- [React.js](https://react.dev/) + [Vite](https://vitejs.dev/) (Hızlı derleme ve modern web arayüzü)
-- Bileşen Tabanlı Yapı (Dashboard, Passwords, Audit, Breach, Score Tabs)
-- State & Context API tabanlı yönetim (AuthContext)
+- [React.js](https://react.dev/) + [Vite](https://vitejs.dev/) for a fast modern web UI
+- Component-based structure (Dashboard, Passwords, Audit, Breach, Score tabs)
+- State management with Context API (`AuthContext`)
 
-## Proje Yapısı
+## Project Structure
 
 ```text
 password_security_system/
 ├── backend/
-│   ├── main.py                 # FastAPI uygulamasının giriş noktası
-│   ├── config.py & database.py # Yapılandırma ve veritabanı ayarları
-│   ├── models/                 # Veritabanı modelleri ve Pydantic şemaları
-│   ├── routers/                # API Uç noktaları (auth, passwords, breach, score, vb.)
-│   └── services/               # İş mantığı (crypto, audit, breach, generator, vb.)
+│   ├── main.py                 # FastAPI application entry point
+│   ├── config.py & database.py # Configuration and database setup
+│   ├── models/                 # Database models and Pydantic schemas
+│   ├── routers/                # API endpoints (auth, passwords, breach, score, etc.)
+│   └── services/               # Business logic (crypto, audit, breach, generator, etc.)
 │
 ├── frontend/
-│   ├── index.html & vite.config.js       # Vite ve giriş ayarları
-│   ├── package.json & eslint.config.js   # Bağımlılıklar ve Lint kuralları
+│   ├── index.html & vite.config.js       # Vite and entry setup
+│   ├── package.json & eslint.config.js   # Dependencies and lint rules
 │   └── src/
-│       ├── components/         # Arayüz bileşenleri (Sekmeler, Modal vs.)
+│       ├── components/         # UI components (tabs, modals, etc.)
 │       ├── context/            # React Context (AuthContext)
-│       ├── pages/              # Sayfalar (Login, Dashboard)
-│       └── services/           # Backend ile iletişim kuran API servisleri (api.js)
+│       ├── pages/              # Pages (Login, Dashboard)
+│       └── services/           # API services for backend communication (api.js)
 ```
 
-## Risk Skoru Metodolojisi (V2)
+## Risk Score Methodology (V2)
 
-Sistem, risk skorunu sabit ceza toplamı yerine normalize oranlar üzerinden hesaplar. Bu sayede az kayıtlı ve çok kayıtlı kullanıcılar arasında daha adil bir karşılaştırma yapılır.
+The system calculates the risk score using normalized ratios instead of a fixed penalty sum. This enables a fairer comparison between users with small and large vaults.
 
-### Formül
+### Formula
 
-1. **Ağırlıklı risk** hesaplanır:
+1. **Weighted risk** is calculated:
 
 ```text
 base_risk =
@@ -63,79 +63,78 @@ base_risk =
 	+ 0.05 * not_rotated_ratio
 ```
 
-2. **Temel skor** üretilir:
+2. **Base score** is produced:
 
 ```text
 base_score = round(100 * (1 - base_risk))
 ```
 
-3. **Pozitif güvenlik bonusları** eklenir:
+3. **Positive security bonuses** are added:
 
 ```text
 bonus = round(8 * totp_ratio) + round(5 * unique_ratio)
 score = clamp(base_score + bonus, 0, 100)
 ```
 
-### Kısa Açıklama
+### Quick Explanation
 
-- `weak_ratio`: Zayıf parola oranı
-- `medium_ratio`: Orta seviye parola oranı
-- `reused_ratio`: Tekrar kullanılan parola oranı
-- `breach_any_ratio`: Şifre veya e-posta ihlali görülen kayıt oranı
-- `stale_ratio`: 90 günden eski parola oranı
-- `not_rotated_ratio`: İhlal sonrası güncellenmeyen parola oranı
-- `totp_ratio`: TOTP aktif kayıt oranı (bonus)
-- `unique_ratio`: Benzersiz parola oranı (bonus)
+- `weak_ratio`: Ratio of weak passwords
+- `medium_ratio`: Ratio of medium-strength passwords
+- `reused_ratio`: Ratio of reused passwords
+- `breach_any_ratio`: Ratio of records affected by password or email breaches
+- `stale_ratio`: Ratio of passwords older than 90 days
+- `not_rotated_ratio`: Ratio of passwords not updated after a breach
+- `totp_ratio`: Ratio of records with TOTP enabled (bonus)
+- `unique_ratio`: Ratio of unique passwords (bonus)
 
-### Stabilizasyon (Skor Geçmişi)
+### Stabilization (Score History)
 
-Skor geçmişi trend grafiği için saklanır. Aynı skor değeri sürekli hesaplanıyorsa gereksiz history şişmesini önlemek için kayıt atımı throttle edilir (minimum zaman aralığı uygulanır).
+Score history is stored for the trend chart. If the same score keeps being calculated, history writes are throttled with a minimum interval to avoid unnecessary growth.
 
-## Dış API Bağımlılığı Notu
+## External API Dependency Note
 
-Projede dış servis olarak Have I Been Pwned (HIBP) yalnızca ihlal zenginleştirmesi için kullanılır.
+The project uses Have I Been Pwned (HIBP) only for breach enrichment.
 
-- Çekirdek yetenekler (şifre kasası, şifreleme, local risk skoru, TOTP, audit, import/export) **dış API olmadan da çalışır**.
-- HIBP erişilemezse sistemin temel işlevleri durmaz; yalnızca ihlal doğrulama kapsamı azalır.
+- Core capabilities (vault, encryption, local risk scoring, TOTP, audit, import/export) **continue working without any external API**.
+- If HIBP is unavailable, the core system still works; only breach verification coverage is reduced.
 
-Bu mimari, projeyi “tek API çağrısına bağlı bir demo” olmaktan çıkarıp, bağımsız çalışan bir güvenlik sistemi haline getirir.
+This architecture makes the project an independently functioning security system rather than a demo tied to a single external API call.
 
-## Kurulum ve Çalıştırma
+## Setup and Run
 
-### Backend'i Ayağa Kaldırma
+### Start the Backend
 
-Projenin kök dizininde (veya backend dizininde) aşağıdaki adımları sırasıyla uygulayın:
+From the project root (or the backend directory), run the following steps:
 
 ```bash
 cd password_security_system
 
-# Python sanal ortamı (virtual environment) oluşturun
+# Create a Python virtual environment
 python3 -m venv .venv
 
-# Sanal ortamı aktifleştirin (macOS / Linux)
+# Activate the virtual environment (macOS / Linux)
 source .venv/bin/activate
-# Windows için: .venv\Scripts\activate
+# For Windows: .venv\Scripts\activate
 
-# Gerekli bağımlılıkları yükleyin
+# Install dependencies
 pip install -r requirements.txt
 
-# FastAPI sunucusunu uvicorn ile başlatın
+# Start the FastAPI server with uvicorn
 uvicorn backend.main:app --reload
 ```
-API sunucusu varsayılan olarak `http://localhost:8000` adresinde çalışacak ve interaktif belgelendirme sayfasına `http://localhost:8000/docs` adresinden ulaşılabilecektir.
+The API server runs by default at `http://localhost:8000`, and the interactive documentation is available at `http://localhost:8000/docs`.
 
-### Frontend'i Ayağa Kaldırma
+### Start the Frontend
 
-Farklı bir terminal sekmesinde/penceresinde aşağıdaki adımları takip edin:
+In a separate terminal tab/window, run:
 
 ```bash
 cd password_security_system/frontend
 
-# Node paketlerini yükleyin
+# Install Node packages
 npm install
 
-# Geliştirme (development) sunucusunu başlatın
+# Start the development server
 npm run dev
 ```
-Uygulama arayüzü `http://localhost:5173` adresinde erişime açılacaktır.
-
+The application UI will be available at `http://localhost:5173`.

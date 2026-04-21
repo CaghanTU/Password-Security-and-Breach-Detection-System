@@ -66,36 +66,36 @@ def _pct(value: float) -> str:
 
 def _complexity_text(label: str) -> str:
     return {
-        "weak": "zayıf",
-        "medium": "orta",
-        "strong": "güçlü",
+        "weak": "weak",
+        "medium": "medium",
+        "strong": "strong",
     }.get(label, label or "-")
 
 
 def _security_status_text(cred: dict) -> str:
     if cred.get("breach_date_status") == "not_rotated":
-        return "ihlal sonrası güncellenmedi"
+        return "not updated after breach"
     if cred.get("is_breached") and cred.get("email_breached"):
-        return "şifre ve e-posta ihlali"
+        return "password and email breach"
     if cred.get("is_breached"):
-        return "şifre ihlali"
+        return "password breach"
     if cred.get("email_breached"):
-        return "e-posta ihlali"
+        return "email breach"
     if cred.get("strength_label") == "weak":
-        return "zayıf parola"
+        return "weak password"
     if cred.get("is_stale"):
-        return "eski parola"
-    return "stabil"
+        return "old password"
+    return "stable"
 
 
 def _score_palette(score: int) -> dict:
     if score >= 85:
-        return {"bg": "#1d7a53", "fg": colors.white, "label": "Çok iyi"}
+        return {"bg": "#1d7a53", "fg": colors.white, "label": "Excellent"}
     if score >= 70:
-        return {"bg": "#0d6e6e", "fg": colors.white, "label": "İyi"}
+        return {"bg": "#0d6e6e", "fg": colors.white, "label": "Good"}
     if score >= 45:
-        return {"bg": "#b56d17", "fg": colors.white, "label": "İzlenmeli"}
-    return {"bg": "#b54034", "fg": colors.white, "label": "Kritik"}
+        return {"bg": "#b56d17", "fg": colors.white, "label": "Watch"}
+    return {"bg": "#b54034", "fg": colors.white, "label": "Critical"}
 
 
 def _join_parts(parts: list[str]) -> str:
@@ -103,37 +103,37 @@ def _join_parts(parts: list[str]) -> str:
         return ""
     if len(parts) == 1:
         return parts[0]
-    return ", ".join(parts[:-1]) + " ve " + parts[-1]
+    return ", ".join(parts[:-1]) + " and " + parts[-1]
 
 
 def _executive_summary(score: int, breakdown: dict) -> str:
     risks: list[str] = []
     if breakdown.get("breach_any_count", 0) > 0:
-        risks.append(f"{breakdown['breach_any_count']} ihlalli kayıt")
+        risks.append(f"{breakdown['breach_any_count']} breached records")
     if breakdown.get("weak_count", 0) > 0:
-        risks.append(f"{breakdown['weak_count']} zayıf parola")
+        risks.append(f"{breakdown['weak_count']} weak passwords")
     if breakdown.get("reused_count", 0) > 0:
-        risks.append(f"{breakdown['reused_count']} tekrar kullanılan parola")
+        risks.append(f"{breakdown['reused_count']} reused passwords")
     if breakdown.get("stale_count", 0) > 0:
-        risks.append(f"{breakdown['stale_count']} eski parola")
+        risks.append(f"{breakdown['stale_count']} old passwords")
 
     if not risks:
         return (
-            f"Genel görünüm dengeli. Skor {score}/100 ve belirgin bir yüksek risk baskısı görünmüyor. "
-            "Mevcut seviyeyi korumak için düzenli tarama ve 2FA disiplini sürdürülmeli."
+            f"The overall outlook is balanced. Score is {score}/100 and no dominant high-risk pressure is visible. "
+            "To maintain the current level, regular scanning and disciplined 2FA usage should continue."
         )
 
     summary = _join_parts(risks)
     return (
-        f"Skor {score}/100. Güvenlik duruşunu aşağı çeken ana başlıklar {summary}. "
-        f"TOTP kapsaması {_pct(breakdown.get('totp_ratio', 0.0))} seviyesinde ve toplam bonus +{breakdown.get('bonus_total', 0)}."
+        f"Score is {score}/100. The main factors pulling the security posture down are {summary}. "
+        f"TOTP coverage is {_pct(breakdown.get('totp_ratio', 0.0))} and the total bonus is +{breakdown.get('bonus_total', 0)}."
     )
 
 
 def _priority_actions(score_data: dict, breakdown: dict) -> list[list[str]]:
     suggestions = score_data.get("suggested_actions") or []
     if suggestions:
-        rows = [["Sıra", "Aksiyon", "Tahmini etki"]]
+        rows = [["Order", "Action", "Estimated impact"]]
         for index, item in enumerate(suggestions[:5], start=1):
             gain = item.get("estimated_score_gain", 0)
             rows.append([
@@ -145,27 +145,27 @@ def _priority_actions(score_data: dict, breakdown: dict) -> list[list[str]]:
 
     fallback = []
     if breakdown.get("breach_any_count", 0) > 0:
-        fallback.append(["1", "İhlalli kayıtların parolasını hemen değiştirin.", "+4"])
+        fallback.append(["1", "Change passwords for breached records immediately.", "+4"])
     if breakdown.get("reused_count", 0) > 0:
-        fallback.append(["2", "Tekrar kullanılan parolaları ayırın.", "+2"])
+        fallback.append(["2", "Separate reused passwords.", "+2"])
     if breakdown.get("weak_count", 0) > 0:
-        fallback.append(["3", "Zayıf parolaları daha uzun ve benzersiz hale getirin.", "+3"])
+        fallback.append(["3", "Make weak passwords longer and unique.", "+3"])
     if breakdown.get("totp_enabled_count", 0) == 0 and breakdown.get("total_credentials", 0) > 0:
-        fallback.append(["4", "Kritik hesaplarda TOTP açın.", "+8"])
+        fallback.append(["4", "Enable TOTP on critical accounts.", "+8"])
     if not fallback:
-        fallback.append(["1", "Mevcut güvenlik seviyesini koruyun.", "-"])
-    return [["Sıra", "Aksiyon", "Tahmini etki"], *fallback[:5]]
+        fallback.append(["1", "Maintain the current security level.", "-"])
+    return [["Order", "Action", "Estimated impact"], *fallback[:5]]
 
 
 def _risk_driver_rows(score_data: dict) -> list[list[str]]:
     explanations = score_data.get("explanations") or []
-    rows = [["Risk sürücüsü", "Şiddet", "Kayıt", "Etki", "Öneri"]]
+    rows = [["Risk driver", "Severity", "Records", "Impact", "Recommendation"]]
     for item in explanations[:5]:
         rows.append([
             item.get("title", "-"),
             item.get("severity", "-"),
             str(item.get("count", 0)),
-            f"{item.get('impact_points', 0)} puan",
+            f"{item.get('impact_points', 0)} points",
             item.get("recommendation", "-"),
         ])
     return rows
@@ -194,14 +194,14 @@ def _critical_credentials(credentials: list[dict]) -> list[dict]:
 
 def _credential_action_text(cred: dict) -> str:
     if cred.get("breach_date_status") == "not_rotated":
-        return "İhlal sonrası yenile"
+        return "Rotate after breach"
     if cred.get("is_breached") or cred.get("email_breached"):
-        return "İhlal nedeniyle değiştir"
+        return "Change because of breach"
     if cred.get("strength_label") == "weak":
-        return "Daha güçlü parola ata"
+        return "Assign a stronger password"
     if cred.get("is_stale"):
-        return "Rotasyona al"
-    return "İzlemeye devam et"
+        return "Rotate it"
+    return "Continue monitoring"
 
 
 def generate_pdf(username: str, score_data: dict, credentials: list[dict], ai_insights: Optional[dict] = None) -> bytes:
@@ -289,17 +289,17 @@ def generate_pdf(username: str, score_data: dict, credentials: list[dict], ai_in
         Paragraph("SECURITY REPORT", kicker_style),
         Paragraph("Password Security System", title_style),
         Paragraph(
-            f"Kullanıcı: <b>{username}</b><br/>Oluşturulma: {datetime.utcnow().strftime('%d.%m.%Y %H:%M')} UTC",
+            f"User: <b>{username}</b><br/>Created: {datetime.utcnow().strftime('%d.%m.%Y %H:%M')} UTC",
             body_style,
         ),
     ]
     hero_right = Table(
         [[
-            Paragraph("Anlık Skor", score_label_style),
+            Paragraph("Current Score", score_label_style),
         ], [
             Paragraph(str(score), score_value_style),
         ], [
-            Paragraph(f"{palette['label']} seviye", score_label_style),
+            Paragraph(f"{palette['label']} level", score_label_style),
         ]],
         colWidths=[4.2 * cm],
     )
@@ -324,10 +324,10 @@ def generate_pdf(username: str, score_data: dict, credentials: list[dict], ai_in
 
     metric_table = Table([
         [
-            Paragraph("Toplam kayıt", body_style),
-            Paragraph("İhlalli kayıt", body_style),
-            Paragraph("Zayıf parola", body_style),
-            Paragraph("TOTP aktif", body_style),
+            Paragraph("Total records", body_style),
+            Paragraph("Breached records", body_style),
+            Paragraph("Weak passwords", body_style),
+            Paragraph("TOTP enabled", body_style),
         ],
         [
             Paragraph(f"<b>{breakdown.get('total_credentials', 0)}</b>", body_style),
@@ -350,27 +350,27 @@ def generate_pdf(username: str, score_data: dict, credentials: list[dict], ai_in
     story.append(Spacer(1, 0.35 * cm))
     story.append(metric_table)
 
-    story.append(Paragraph("Yönetici Özeti", section_style))
+    story.append(Paragraph("Executive Summary", section_style))
     story.append(Paragraph(_executive_summary(score, breakdown), body_style))
 
     if ai_insights:
         briefing = ai_insights.get("briefing", {})
         weekly = ai_insights.get("weekly_summary", {})
-        story.append(Paragraph("AI Analiz Bölümü", section_style))
+        story.append(Paragraph("AI Analysis Section", section_style))
         if briefing.get("headline"):
             story.append(Paragraph(f"<b>{briefing['headline']}</b>", body_style))
         if briefing.get("summary"):
             story.append(Paragraph(briefing["summary"], body_style))
         if briefing.get("why_now"):
             story.append(Spacer(1, 0.15 * cm))
-            story.append(Paragraph(f"<b>Neden şimdi?</b> {briefing['why_now']}", body_style))
+            story.append(Paragraph(f"<b>Why now?</b> {briefing['why_now']}", body_style))
         if weekly.get("headline") or weekly.get("summary"):
             story.append(Spacer(1, 0.2 * cm))
-            story.append(Paragraph(f"<b>{weekly.get('headline', 'Haftalık görünüm')}</b>", body_style))
+            story.append(Paragraph(f"<b>{weekly.get('headline', 'Weekly outlook')}</b>", body_style))
             if weekly.get("summary"):
                 story.append(Paragraph(weekly["summary"], body_style))
 
-        plan_rows = [["Zaman", "AI önerisi"]]
+        plan_rows = [["Time", "AI recommendation"]]
         for item in ai_insights.get("plan_48h", [])[:3]:
             plan_rows.append([item.get("window", "-"), f"{item.get('title', '-')}\n{item.get('detail', '-')}"])
         if len(plan_rows) > 1:
@@ -390,7 +390,7 @@ def generate_pdf(username: str, score_data: dict, credentials: list[dict], ai_in
             ]))
             story.append(plan_table)
 
-    story.append(Paragraph("Öncelikli Aksiyonlar", section_style))
+    story.append(Paragraph("Priority Actions", section_style))
     action_table = Table(_priority_actions(score_data, breakdown), colWidths=[1.3 * cm, 11.6 * cm, 2.8 * cm])
     action_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0d6e6e")),
@@ -406,7 +406,7 @@ def generate_pdf(username: str, score_data: dict, credentials: list[dict], ai_in
     ]))
     story.append(action_table)
 
-    story.append(Paragraph("Risk Sürücüleri", section_style))
+    story.append(Paragraph("Risk Drivers", section_style))
     driver_table = Table(_risk_driver_rows(score_data), colWidths=[4.1 * cm, 2.1 * cm, 1.6 * cm, 2.2 * cm, 5.8 * cm])
     driver_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#10222f")),
@@ -425,8 +425,8 @@ def generate_pdf(username: str, score_data: dict, credentials: list[dict], ai_in
 
     critical = _critical_credentials(credentials)
     if critical:
-        story.append(Paragraph("Öne Çıkan Kayıtlar", section_style))
-        critical_rows = [["Kayıt", "Kategori", "Karmaşıklık", "Risk nedeni", "Önerilen aksiyon"]]
+        story.append(Paragraph("Highlighted Records", section_style))
+        critical_rows = [["Record", "Category", "Complexity", "Risk reason", "Recommended action"]]
         for cred in critical:
             critical_rows.append([
                 cred.get("site_name", "-"),
@@ -451,14 +451,14 @@ def generate_pdf(username: str, score_data: dict, credentials: list[dict], ai_in
         ]))
         story.append(critical_table)
 
-    story.append(Paragraph("Model Özeti", section_style))
+    story.append(Paragraph("Model Summary", section_style))
     model_table = Table([
-        ["Temel skor", str(breakdown.get("base_score", score))],
-        ["Toplam bonus", f"+{breakdown.get('bonus_total', 0)}"],
-        ["Benzersizlik oranı", _pct(breakdown.get("unique_ratio", 0.0))],
-        ["TOTP kapsaması", _pct(breakdown.get("totp_ratio", 0.0))],
-        ["Tekrar kullanım oranı", _pct(breakdown.get("reused_ratio", 0.0))],
-        ["Eski parola oranı", _pct(breakdown.get("stale_ratio", 0.0))],
+        ["Base score", str(breakdown.get("base_score", score))],
+        ["Total bonus", f"+{breakdown.get('bonus_total', 0)}"],
+        ["Uniqueness ratio", _pct(breakdown.get("unique_ratio", 0.0))],
+        ["TOTP coverage", _pct(breakdown.get("totp_ratio", 0.0))],
+        ["Reuse ratio", _pct(breakdown.get("reused_ratio", 0.0))],
+        ["Old password ratio", _pct(breakdown.get("stale_ratio", 0.0))],
     ], colWidths=[6.2 * cm, 9.4 * cm])
     model_table.setStyle(TableStyle([
         ("FONTNAME", (0, 0), (-1, -1), font_regular),
@@ -473,8 +473,8 @@ def generate_pdf(username: str, score_data: dict, credentials: list[dict], ai_in
 
     story.append(Spacer(1, 0.45 * cm))
     story.append(Paragraph(
-        "Bu rapor Password Security System tarafından otomatik oluşturulmuştur. "
-        "Önceliklendirme, mevcut parola sağlığı ve risk modeli verilerine göre hesaplanır.",
+        "This report was generated automatically by Password Security System. "
+        "Prioritization is calculated from current password health and risk model data.",
         footer_style,
     ))
 
