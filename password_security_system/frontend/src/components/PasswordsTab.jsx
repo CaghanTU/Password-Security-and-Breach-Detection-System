@@ -17,6 +17,7 @@ import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded'
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded'
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded'
 import VisibilityOffRoundedIcon from '@mui/icons-material/VisibilityOffRounded'
+import { useAuth } from '../context/auth-context'
 
 const CATEGORIES = ['', 'email', 'banking', 'social', 'work', 'other']
 const CAT_LABELS  = { '': 'All', email: 'Email', banking: 'Banking', social: 'Social', work: 'Work', other: 'Other' }
@@ -42,7 +43,7 @@ function SecurityStatusChip({ cred }) {
   return <Chip label="overall risk: low" size="small" color="success" />
 }
 
-function TOTPPanel({ credId }) {
+function TOTPPanel({ credId, onChanged }) {
   const [secret, setSecret] = useState('')
   const [code, setCode] = useState(null)    // { code, valid_seconds }
   const [loading, setLoading] = useState(false)
@@ -70,6 +71,7 @@ function TOTPPanel({ credId }) {
       const res = await api.setTOTP(credId, secret.trim())
       setCode(res)
       setSecret('')
+      onChanged?.()
     } catch (e) {
       setErr(e.message)
     } finally {
@@ -94,6 +96,7 @@ function TOTPPanel({ credId }) {
     try {
       await api.removeTOTP(credId)
       setCode(null)
+      onChanged?.()
     } catch (e) {
       setErr(e.message)
     } finally {
@@ -172,10 +175,16 @@ function HistoryPanel({ credId }) {
   )
 }
 
-function CredentialRow({ cred, expanded, highlighted, onToggleExpanded, onEdit, onDelete, selected, onSelect }) {
+function CredentialRow({ cred, expanded, highlighted, autoOpenTOTP, onTOTPChanged, onToggleExpanded, onEdit, onDelete, selected, onSelect }) {
   const [show, setShow] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showTOTP, setShowTOTP] = useState(false)
+
+  useEffect(() => {
+    if (expanded && autoOpenTOTP) {
+      setShowTOTP(true)
+    }
+  }, [expanded, autoOpenTOTP])
 
   return (
     <Card
@@ -323,7 +332,7 @@ function CredentialRow({ cred, expanded, highlighted, onToggleExpanded, onEdit, 
             </Button>
           </Stack>
           <Collapse in={showTOTP}>
-            <TOTPPanel credId={cred.id} />
+            <TOTPPanel credId={cred.id} onChanged={onTOTPChanged} />
           </Collapse>
 
           {/* History Section */}
@@ -456,6 +465,7 @@ function BulkCategoryDialog({ open, onClose, onConfirm }) {
 }
 
 export default function PasswordsTab({ navigationTarget }) {
+  const { getAIInsightsCached, invalidateAIInsights } = useAuth()
   const [creds, setCreds] = useState([])
   const [aiInsights, setAIInsights] = useState(null)
   const [category, setCategory] = useState('')
@@ -473,7 +483,7 @@ export default function PasswordsTab({ navigationTarget }) {
     try {
       const [passwords, insights] = await Promise.all([
         api.getPasswords(category || undefined),
-        api.getAIInsights().catch(() => null),
+        getAIInsightsCached().catch(() => null),
       ])
       setCreds(passwords)
       setAIInsights(insights)
@@ -481,7 +491,7 @@ export default function PasswordsTab({ navigationTarget }) {
     } finally {
       setLoading(false)
     }
-  }, [category])
+  }, [category, getAIInsightsCached])
 
   useEffect(() => { load() }, [load])
 
@@ -519,6 +529,7 @@ export default function PasswordsTab({ navigationTarget }) {
   async function handleDelete(id) {
     if (!confirm('Delete this credential?')) return
     await api.deletePassword(id)
+    invalidateAIInsights()
     load()
   }
 
@@ -527,6 +538,7 @@ export default function PasswordsTab({ navigationTarget }) {
     setBulkMsg(null)
     try {
       const res = await api.bulkDelete([...selected])
+      invalidateAIInsights()
       setBulkMsg({ type: 'success', text: `${res.deleted} credentials deleted.` })
       load()
     } catch (e) {
@@ -538,6 +550,7 @@ export default function PasswordsTab({ navigationTarget }) {
     setBulkCatOpen(false); setBulkMsg(null)
     try {
       const res = await api.bulkUpdateCategory([...selected], cat)
+      invalidateAIInsights()
       setBulkMsg({ type: 'success', text: `${res.updated} credentials updated.` })
       load()
     } catch (e) {
@@ -577,6 +590,13 @@ export default function PasswordsTab({ navigationTarget }) {
 
     if (navigationTarget.intent === 'edit') {
       setModal({ open: true, initial: primary })
+    }
+
+    if (navigationTarget.intent === 'credential-totp') {
+      setBulkMsg({
+        type: 'info',
+        text: `${primary.site_name} record opened directly at its TOTP section.`,
+      })
     }
 
     if (navigationTarget.intent === 'review-reuse') {
@@ -712,6 +732,15 @@ export default function PasswordsTab({ navigationTarget }) {
           <CredentialRow key={c.id} cred={c}
             expanded={expandedId === c.id}
             highlighted={highlightedId === c.id}
+            autoOpenTOTP={
+              navigationTarget?.intent === 'credential-totp'
+              && navigationTarget?.credentialId === c.id
+              && expandedId === c.id
+            }
+            onTOTPChanged={() => {
+              invalidateAIInsights()
+              load()
+            }}
             onToggleExpanded={toggleExpanded}
             selected={selected.has(c.id)}
             onSelect={onSelect}
@@ -725,7 +754,10 @@ export default function PasswordsTab({ navigationTarget }) {
         open={modal.open}
         initial={modal.initial}
         onClose={() => setModal({ open: false, initial: null })}
-        onSave={load}
+        onSave={() => {
+          invalidateAIInsights()
+          load()
+        }}
       />
       <BulkCategoryDialog
         open={bulkCatOpen}

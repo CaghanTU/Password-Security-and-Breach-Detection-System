@@ -4,6 +4,7 @@ import {
   Box, Card, CardContent, Typography, Button, Alert, CircularProgress,
   Select, MenuItem, FormControl, InputLabel, Stack,
 } from '@mui/material'
+import { useAuth } from '../context/auth-context'
 
 const CSV_FORMATS = [
   { value: 'auto', label: 'Auto Detect' },
@@ -13,6 +14,7 @@ const CSV_FORMATS = [
 ]
 
 export default function ExportTab() {
+  const { invalidateAIInsights } = useAuth()
   const [exportLoading, setExportLoading] = useState(false)
   const [importLoading, setImportLoading] = useState(false)
   const [csvLoading, setCsvLoading] = useState(false)
@@ -53,6 +55,7 @@ export default function ExportTab() {
         throw new Error('Invalid vault file format.')
       }
       const result = await api.importVault(payload)
+      invalidateAIInsights()
       setMsg({
         type: 'success',
         text: `Import completed: ${result.imported} records added, ${result.skipped} skipped.${
@@ -73,6 +76,7 @@ export default function ExportTab() {
     setCsvLoading(true); setCsvMsg(null)
     try {
       const result = await api.importCSV(file, csvFormat)
+      invalidateAIInsights()
       setCsvMsg({
         type: 'success',
         text: `Import completed: ${result.imported} records added, ${result.skipped} skipped.${

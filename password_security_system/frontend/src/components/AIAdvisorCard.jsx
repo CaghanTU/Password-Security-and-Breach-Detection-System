@@ -210,9 +210,9 @@ export default function AIAdvisorCard({
                     background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
                   }}
                 >
-                  <Typography variant="subtitle2" sx={{ mb: 1.1 }}>Analyst Note</Typography>
+                  <Typography variant="subtitle2" sx={{ mb: 1.1 }}>AI Analyst Note</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8, overflowWrap: 'anywhere' }}>
-                    {activeData.risk_posture}
+                    {activeData.analyst_note || activeData.risk_posture}
                   </Typography>
                 </Box>
               </Grid>

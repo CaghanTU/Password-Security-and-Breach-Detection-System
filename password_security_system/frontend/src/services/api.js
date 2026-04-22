@@ -4,11 +4,18 @@
 const BASE = ''  // same origin via Vite proxy
 
 async function request(path, options = {}) {
-  const res = await fetch(BASE + path, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  })
+  let res
+  try {
+    res = await fetch(BASE + path, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options,
+    })
+  } catch (cause) {
+    const err = new Error('Backend is unreachable. Make sure the API server is running on http://127.0.0.1:8000.')
+    err.cause = cause
+    throw err
+  }
   const data = res.headers.get('content-type')?.includes('application/json')
     ? await res.json()
     : null

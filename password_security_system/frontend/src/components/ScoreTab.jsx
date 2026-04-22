@@ -13,6 +13,7 @@ import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded'
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
 import AIAdvisorCard from './AIAdvisorCard'
 import { api } from '../services/api'
+import { useAuth } from '../context/auth-context'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend, Filler)
 
@@ -96,6 +97,7 @@ function SectionCard({ eyebrow, title, action, children }) {
 }
 
 export default function ScoreTab() {
+  const { getAIInsightsCached } = useAuth()
   const [data, setData] = useState(null)
   const [aiInsights, setAIInsights] = useState(null)
   const [history, setHistory] = useState([])
@@ -115,7 +117,7 @@ export default function ScoreTab() {
         api.getScoreHistory(),
         api.getScoreByCategory(),
         api.getHealthTrend(),
-        api.getAIInsights().catch(() => null),
+        getAIInsightsCached().catch(() => null),
       ])
       setData(scoreData)
       setHistory(historyData)
@@ -126,19 +128,19 @@ export default function ScoreTab() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [getAIInsightsCached])
 
   const loadAIOnly = useCallback(async () => {
     setAILoading(true)
     setAIError('')
     try {
-      setAIInsights(await api.getAIInsights())
+      setAIInsights(await getAIInsightsCached({ force: true }))
     } catch (err) {
       setAIError(err.message)
     } finally {
       setAILoading(false)
     }
-  }, [])
+  }, [getAIInsightsCached])
 
   useEffect(() => {
     load()

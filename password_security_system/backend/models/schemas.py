@@ -328,6 +328,7 @@ class AIAdvisorResponse(BaseModel):
     headline: str
     summary: str
     risk_posture: str
+    analyst_note: Optional[str] = None
     why_now: str
     next_step: str
     priorities: List[AIAdvisorPriority]

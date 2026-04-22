@@ -4,6 +4,7 @@ import {
   Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Divider,
   Grid, Stack, TextField, Typography,
 } from '@mui/material'
+import { useAuth } from '../context/auth-context'
 
 function downloadRecoveryCodes(codes) {
   const blob = new Blob([codes.join('\n')], { type: 'text/plain;charset=utf-8' })
@@ -16,6 +17,7 @@ function downloadRecoveryCodes(codes) {
 }
 
 export default function TwoFATab({ navigationTarget }) {
+  const { invalidateAIInsights } = useAuth()
   const [qr, setQr] = useState(null)
   const [secret, setSecret] = useState('')
   const [code, setCode] = useState('')
@@ -56,6 +58,7 @@ export default function TwoFATab({ navigationTarget }) {
       const data = await api.setup2fa()
       setQr(data.qr_image)
       setSecret(data.secret)
+      invalidateAIInsights()
     } catch (err) {
       setMsg({ type: 'error', text: err.message })
     } finally {
@@ -68,6 +71,7 @@ export default function TwoFATab({ navigationTarget }) {
     setMsg(null); setLoading(true)
     try {
       await api.verify2fa(code)
+      invalidateAIInsights()
       setMsg({ type: 'success', text: 'Code verified. 2FA is now active.' })
     } catch (err) {
       setMsg({ type: 'error', text: err.message })
@@ -82,6 +86,7 @@ export default function TwoFATab({ navigationTarget }) {
     try {
       const data = await api.regenerateRecoveryCodes()
       setRecoveryCodes(data.codes)
+      invalidateAIInsights()
       setMsg({ type: 'success', text: 'A new set of recovery codes was created. Store them somewhere safe.' })
       await loadRecoverySummary()
     } catch (err) {

@@ -4,6 +4,7 @@ import {
   Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Grid, Stack, Typography,
 } from '@mui/material'
 import AIAdvisorCard from './AIAdvisorCard'
+import { useAuth } from '../context/auth-context'
 
 const PRIORITY_COLOR = {
   critical: 'error',
@@ -53,6 +54,13 @@ function targetTabForAction(item) {
     return { tabId: 'twofa', section: 'recovery' }
   }
   if (item.kind === 'totp_bonus') {
+    if (item.credential_id) {
+      return {
+        tabId: 'passwords',
+        intent: 'credential-totp',
+        credentialId: item.credential_id,
+      }
+    }
     return { tabId: 'twofa', section: 'totp' }
   }
   if (item.kind === 'weak_password' || item.kind === 'stale_password' || item.kind === 'breach_followup') {
@@ -74,19 +82,20 @@ function targetTabForAction(item) {
 }
 
 export default function ActionCenterTab({ onNavigateTab }) {
+  const { getAIInsightsCached } = useAuth()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [aiInsights, setAIInsights] = useState(null)
   const [aiLoading, setAILoading] = useState(true)
   const [aiError, setAIError] = useState('')
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ forceAI = false } = {}) => {
     setLoading(true)
     setAILoading(true)
     try {
       const [actionData, insightsData] = await Promise.all([
         api.getActionCenter(),
-        api.getAIInsights().catch(() => null),
+        getAIInsightsCached({ force: forceAI }).catch(() => null),
       ])
       setData(actionData)
       setAIInsights(insightsData)
@@ -95,7 +104,7 @@ export default function ActionCenterTab({ onNavigateTab }) {
       setLoading(false)
       setAILoading(false)
     }
-  }, [])
+  }, [getAIInsightsCached])
 
   useEffect(() => {
     load()
@@ -127,7 +136,7 @@ export default function ActionCenterTab({ onNavigateTab }) {
           data={aiInsights?.briefing ?? null}
           loading={aiLoading}
           error={aiError}
-          onRefresh={load}
+          onRefresh={() => load({ forceAI: true })}
         />
       </Box>
 

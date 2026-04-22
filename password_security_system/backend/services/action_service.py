@@ -14,6 +14,20 @@ def _priority_rank(priority: str) -> int:
     return {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(priority, 9)
 
 
+def _totp_target_rank(cred: Credential) -> tuple[int, int, str]:
+    category_rank = {"banking": 0, "email": 1, "work": 2, "social": 3, "other": 4}
+    risk_rank = 0
+    if cred.is_breached or getattr(cred, "email_breached", False):
+        risk_rank -= 4
+    if cred.breach_date_status == "not_rotated":
+        risk_rank -= 3
+    if cred.strength_label == "weak":
+        risk_rank -= 2
+    if scoring_service._is_stale_credential(cred):
+        risk_rank -= 1
+    return (category_rank.get(cred.category or "other", 4), risk_rank, cred.site_name or "")
+
+
 def _action(
     action_id: str,
     kind: str,
@@ -200,16 +214,23 @@ def get_action_center_raw(db: Session, user_id: int, key: Optional[bytes] = None
             )
         )
 
-    if breakdown["totp_enabled_count"] == 0 and breakdown["total_credentials"] > 0:
+    totp_candidates = [cred for cred in creds if not cred.totp_secret]
+    if breakdown["totp_enabled_count"] == 0 and totp_candidates:
+        target = sorted(totp_candidates, key=_totp_target_rank)[0]
         actions.append(
             _action(
                 action_id="totp-bonus",
                 kind="totp_bonus",
                 priority="medium",
-                title="TOTP bonus is not being used",
-                description="Enabling TOTP on critical accounts improves security and adds a score bonus.",
-                action_label="Add TOTP",
+                title=f"Add TOTP protection to {target.site_name}",
+                description=(
+                    f"{target.site_name} is the best next account for TOTP. "
+                    "Credential-level TOTP improves security and activates the score bonus."
+                ),
+                action_label="Open record TOTP",
                 estimated_score_gain=8,
+                credential_id=target.id,
+                site_name=target.site_name,
             )
         )
 

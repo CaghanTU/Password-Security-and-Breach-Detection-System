@@ -452,7 +452,7 @@ def _call_ai(context: dict) -> dict:
     system_prompt = (
         "You are a cybersecurity advisor embedded in a password security dashboard. "
         "Use only the supplied metrics. Do not invent incidents, tools, or accounts. "
-        "Respond in Turkish. Return only valid JSON with this exact shape: "
+        "Respond in English. Return only valid JSON with this exact shape: "
         "{\"headline\": string, \"summary\": string, \"risk_posture\": string, \"why_now\": string, \"next_step\": string, "
         "\"priorities\": [{\"title\": string, \"detail\": string, \"impact\": string}, {\"title\": string, \"detail\": string, \"impact\": string}, {\"title\": string, \"detail\": string, \"impact\": string}]}. "
         "Make the wording feel like a human security analyst, not a template. "
@@ -551,7 +551,7 @@ def _call_insights_ai(context: dict) -> dict:
     system_prompt = (
         "You are a cybersecurity analyst embedded in a password security dashboard. "
         "Use only the supplied metrics, actions, and account list. Do not invent new accounts or new incidents. "
-        "Respond in Turkish and return only valid JSON with this exact shape: "
+        "Respond in English and return only valid JSON with this exact shape: "
         "{\"briefing\":{\"headline\":string,\"summary\":string,\"risk_posture\":string,\"why_now\":string,\"next_step\":string,"
         "\"priorities\":[{\"title\":string,\"detail\":string,\"impact\":string},{\"title\":string,\"detail\":string,\"impact\":string},{\"title\":string,\"detail\":string,\"impact\":string}]},"
         "\"plan_48h\":[{\"window\":string,\"title\":string,\"detail\":string},{\"window\":string,\"title\":string,\"detail\":string},{\"window\":string,\"title\":string,\"detail\":string}],"
@@ -720,7 +720,7 @@ def _call_action_ai(context: dict) -> dict:
     system_prompt = (
         "You are an AI action planner inside a password security dashboard. "
         "Use only the supplied candidate actions. Do not invent new IDs, accounts, or security findings. "
-        "Respond in Turkish and return only valid JSON with this exact shape: "
+        "Respond in English and return only valid JSON with this exact shape: "
         "{\"actions\": [{\"id\": string, \"priority\": string, \"title\": string, "
         "\"description\": string, \"action_label\": string, \"ai_reason\": string}]}. "
         "The id must be copied exactly from the candidate list. "
@@ -822,18 +822,15 @@ def generate_action_plan(action_data: dict) -> list[dict]:
 
     try:
         result = _call_action_ai(context)
-        ai_actions = []
-        for item in result["actions"]:
-            raw = raw_by_id[item["id"]]
-            ai_actions.append({
+        ai_by_id = {item["id"]: item for item in result["actions"]}
+        enriched_actions = []
+        for raw in raw_actions:
+            ai_item = ai_by_id.get(raw["id"])
+            enriched_actions.append({
                 **raw,
-                "priority": item["priority"],
-                "title": item["title"],
-                "description": item["description"],
-                "action_label": item["action_label"],
-                "ai_reason": item["ai_reason"],
+                "ai_reason": ai_item["ai_reason"] if ai_item and ai_item.get("ai_reason") else raw.get("ai_reason"),
             })
-        return ai_actions
+        return enriched_actions
     except Exception as exc:
         logger.warning("AI action planner fell back to raw actions: %s", exc)
         return raw_actions
@@ -862,22 +859,31 @@ def generate_insights(db: Session, user_id: int, key: bytes) -> dict:
     ]
 
     try:
-        briefing = _call_ai(context)
-        if not briefing["summary"]:
-            raise ValueError("AI insights response was missing briefing summary")
+        ai_insights = _call_insights_ai(_build_insights_context(score_data, action_data, credentials, trend_data, score_history))
+        ai_briefing = _call_ai(context)
+        analyst_note = ai_briefing.get("summary", "").strip() or ai_briefing.get("why_now", "").strip()
+        if not analyst_note:
+            raise ValueError("AI insights response was missing analyst note text")
 
         return {
             **deterministic_insights,
-            "source": "ai",
-            "model": briefing["model"],
-            "generated_at": briefing["generated_at"],
+            "source": "ai-assisted",
+            "model": ai_insights["model"],
+            "generated_at": ai_insights["generated_at"],
+            "plan_48h": ai_insights["plan_48h"],
+            "what_if_scenarios": ai_insights["what_if_scenarios"],
+            "weekly_summary": ai_insights["weekly_summary"],
+            "account_reviews": ai_insights["account_reviews"] or deterministic_insights["account_reviews"],
             "briefing": {
-                **briefing,
-                "priorities": deterministic_insights["briefing"]["priorities"],
+                **deterministic_insights["briefing"],
+                "source": "ai-assisted",
+                "model": ai_briefing["model"],
+                "generated_at": ai_briefing["generated_at"],
+                "analyst_note": analyst_note,
             },
         }
     except Exception as exc:
-        logger.warning("AI insights fell back to local summary: %s", exc)
+        logger.warning("AI insights fell back to deterministic summary only: %s", exc)
         return deterministic_insights
 
 

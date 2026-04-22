@@ -1,6 +1,6 @@
 # Password Security System
 
-A comprehensive and secure password management, analysis, and monitoring system. In addition to storing passwords safely, this project provides advanced security capabilities such as strong password generation, breach checks, security scoring, and audit logging.
+A comprehensive and secure password management, analysis, and monitoring system. In addition to storing passwords safely, this project provides advanced security capabilities such as strong password generation, breach checks, security scoring, audit logging, and AI-assisted security guidance.
 
 ## Features
 
@@ -9,6 +9,8 @@ A comprehensive and secure password management, analysis, and monitoring system.
 - **Breach Checking**: Check whether your passwords appear in known data breaches.
 - **Two-Factor Authentication (2FA)**: An extra security layer for user accounts.
 - **Password Generator**: Create strong, random passwords based on configurable security rules such as length, symbols, and digits.
+- **AI Security Advisor**: Generate analyst-style summaries, priority recommendations, and short-term action guidance from the user's current risk posture.
+- **AI Insights & 48h Plan**: Produce AI-assisted insights, what-if scenarios, weekly summaries, and account-level reviews for the dashboard and report output.
 - **Audit Logs**: Detailed, traceable logging for user and system activity.
 - **Import/Export**: Securely back up password data or migrate it from other platforms.
 
@@ -17,11 +19,13 @@ A comprehensive and secure password management, analysis, and monitoring system.
 **Backend:**
 - Python & [FastAPI](https://fastapi.tiangolo.com/) for high-performance API development
 - Security: Pydantic for validation/schemas, cryptography and hashing for end-to-end protection
+- AI layer: OpenAI-compatible chat completions for advisor text, insights, and action-plan enrichment
 - Modular architecture (routers, services, models, schemas)
 
 **Frontend:**
 - [React.js](https://react.dev/) + [Vite](https://vitejs.dev/) for a fast modern web UI
 - Component-based structure (Dashboard, Passwords, Audit, Breach, Score tabs)
+- Dedicated AI summary surfaces in Score, Action Center, Password review, and report flows
 - State management with Context API (`AuthContext`)
 
 ## Project Structure
@@ -33,7 +37,7 @@ password_security_system/
 │   ├── config.py & database.py # Configuration and database setup
 │   ├── models/                 # Database models and Pydantic schemas
 │   ├── routers/                # API endpoints (auth, passwords, breach, score, etc.)
-│   └── services/               # Business logic (crypto, audit, breach, generator, etc.)
+│   └── services/               # Business logic (crypto, audit, breach, generator, AI advisor, etc.)
 │
 ├── frontend/
 │   ├── index.html & vite.config.js       # Vite and entry setup
@@ -44,6 +48,24 @@ password_security_system/
 │       ├── pages/              # Pages (Login, Dashboard)
 │       └── services/           # API services for backend communication (api.js)
 ```
+
+## AI Capabilities
+
+The project includes a dedicated AI service layer that turns raw security telemetry into readable guidance.
+
+- `backend/services/ai_advisor_service.py` generates:
+  - dashboard advisor briefings
+  - structured AI insights
+  - 48-hour action plans
+  - what-if scenarios
+  - weekly summaries
+  - account-level review notes
+- `backend/services/action_service.py` can enrich the action center with AI-prioritized recommendations.
+- `backend/routers/score.py` exposes `/score/advisor` and `/score/insights` endpoints for frontend and report usage.
+- `frontend/src/components/AIAdvisorCard.jsx` renders the AI summary card used in the UI.
+- `backend/services/report_service.py` injects AI insights into the generated PDF report when available.
+
+The AI layer is designed as an enhancement rather than a hard dependency. If no AI provider is configured, the system falls back to deterministic security summaries derived from the same local risk metrics.
 
 ## Risk Score Methodology (V2)
 
@@ -97,8 +119,22 @@ The project uses Have I Been Pwned (HIBP) only for breach enrichment.
 
 - Core capabilities (vault, encryption, local risk scoring, TOTP, audit, import/export) **continue working without any external API**.
 - If HIBP is unavailable, the core system still works; only breach verification coverage is reduced.
+- AI-assisted summaries also degrade gracefully: if the AI provider is unavailable, the application returns deterministic fallback advice and keeps core scoring and action logic working.
 
 This architecture makes the project an independently functioning security system rather than a demo tied to a single external API call.
+
+## AI Configuration
+
+The AI features use an OpenAI-compatible API interface and are controlled through environment variables:
+
+```env
+AI_API_KEY=your_api_key
+AI_BASE_URL=https://api.openai.com/v1
+AI_MODEL=gpt-4o-mini
+AI_TIMEOUT_SECONDS=20
+```
+
+If these variables are left empty, the application still functions; only the generated AI narrative layer falls back to deterministic summaries.
 
 ## Setup and Run
 
